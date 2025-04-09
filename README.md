@@ -75,6 +75,36 @@ gene_position,protein_position,reference_codon
   - Substitution counts
   - Conservation status
 
+## Development and Testing
+
+### Setting up Development Environment
+
+Install the package with development dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Running Tests
+
+To run the test suite:
+
+```bash
+pytest tests/
+```
+
+To run tests with coverage reporting:
+
+```bash
+pytest --cov=hyphy_results_toolkit tests/
+```
+
+The test suite includes:
+- Unit tests for all HyPhy analysis methods
+- Integration tests for gene processing
+- Thread safety validation
+- Mock data fixtures for reliable testing
+
 ## Requirements
 
 - Python 3.7+

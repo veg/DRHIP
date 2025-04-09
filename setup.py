@@ -18,6 +18,12 @@ setup(
         "pandas>=1.3.0",
         "scipy>=1.7.0",
     ],
+    extras_require={
+        'dev': [
+            'pytest>=7.0.0',
+            'pytest-cov>=4.0.0',
+        ],
+    },
     entry_points={
         'console_scripts': [
             'hyphy-results=hyphy_results_toolkit.cli:main',
