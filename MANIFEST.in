@@ -1,0 +1,8 @@
+include LICENSE
+include README.md
+include requirements.txt
+recursive-include hyphy_results_toolkit *.py
+recursive-include hyphy_results_toolkit *.json
+recursive-include hyphy_results_toolkit *.csv
+recursive-include tests *
+global-exclude *.py[cod] __pycache__ *.so *.dylib
