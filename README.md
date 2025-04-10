@@ -37,10 +37,6 @@ The toolkit expects HyPhy results to be organized in the following structure:
 ```
 results/
 ├── concat/
-│   ├── BUSTED/
-│   │   ├── gene1.BUSTED.json
-│   │   ├── gene2.BUSTED.json
-│   │   └── ...
 │   ├── RELAX/
 │   │   ├── gene1.RELAX.json
 │   │   ├── gene2.RELAX.json
@@ -49,17 +45,36 @@ results/
 │       ├── gene1.CFEL.json
 │       ├── gene2.CFEL.json
 │       └── ...
-└── site_mappings/  # Optional, for coordinate mapping
+├── clade1/
+│   ├── BUSTED/
+│   │   ├── gene1.BUSTED.json
+│   │   ├── gene2.BUSTED.json
+│   │   └── ...
+│   ├── MEME/
+│   │   ├── gene1.MEME.json
+│   │   ├── gene2.MEME.json
+│   │   └── ...
+│   ├── PRIME/
+│   │   ├── gene1.PRIME.json
+│   │   ├── gene2.PRIME.json
+│   │   └── ...
+│   └── FEL/
+│       ├── gene1.FEL.json
+│       ├── gene2.FEL.json
+│       └── ...
+├── clade2/  # (optional; same structure as clade1)
+│   └── ...
+└── site_mappings/  # For coordinate mapping between clade-specific results and concat results
     ├── gene1.csv
     ├── gene2.csv
     └── ...
 ```
 
-#### Site Mapping Files (Optional)
-CSV files mapping between different coordinate systems (e.g., between gene and protein coordinates). Format:
-```csv
-gene_position,protein_position,reference_codon
-1,1,ATG
+#### Site Mapping Files
+TSV files mapping between site positions in different results (e.g., between FEL in clade1 and contrastFEL across all clades). Format:
+```tsv
+Consensus_Site	Consensus_capsid_protein_C_concat_1_Site	Consensus_capsid_protein_C_DENV1_1_Site
+0	0	0
 ...
 ```
 
