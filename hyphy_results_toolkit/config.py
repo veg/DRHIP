@@ -2,20 +2,20 @@
 Configuration settings for the hyphy-results-toolkit.
 """
 
-# Method-specific paths relative to results directory
+# Method-specific paths relative to results directory for CAPHEINE structure
 METHOD_PATHS = {
-    'BUSTED': 'concat/BUSTED',
-    'RELAX': 'concat/RELAX',
-    'CFEL': 'concat/contrastFEL',
-    'FEL': 'concat/FEL',
-    'MEME': 'concat/MEME',
-    'PRIME': 'concat/PRIME'
+    'BUSTED': 'BUSTED',
+    'RELAX': 'RELAX',
+    'CFEL': 'contrastFEL',
+    'FEL': 'FEL',
+    'MEME': 'MEME',
+    'PRIME': 'PRIME'
 }
 
 # Default field names for output files
 SUMMARY_FIELDNAMES = [
     'gene',
-    'clade',
+    'comparison_group',  # Previously 'clade'
     'nt_conserved',
     'aa_conserved',
     'total_branch_length',
@@ -26,6 +26,6 @@ SUMMARY_FIELDNAMES = [
 SITES_FIELDNAMES = [
     'gene',
     'site',
-    'clade',
+    'comparison_group',  # Previously 'clade'
     # Method-specific fields will be added by each method
 ]

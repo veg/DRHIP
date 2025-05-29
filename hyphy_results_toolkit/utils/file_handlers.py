@@ -9,31 +9,52 @@ Authors:
 
 import os
 import json
+from typing import List
 
+from ..methods.registry import HyPhyMethodRegistry
+from ..config import METHOD_PATHS
 
-def get_genes(results_path: str) -> list:
+# Default comparison groups 
+# These represent different sequence groups being compared in selection analyses
+comparison_groups = ['foreground', 'background']
+
+def get_genes(results_path: str) -> List[str]:
     """Get list of genes from the results directory.
     
     Args:
         results_path: Path to the directory containing HyPhy results
         
     Returns:
-        List of gene names found in the results directory
+        List of gene names found in the results directory across all methods
     """
-    concat_dir = os.path.join(results_path, "concat")
-    if not os.path.exists(concat_dir):
-        raise FileNotFoundError(f"Expected to find directory 'concat' in {results_path}")
+    # Get methods from registry
+    registry = HyPhyMethodRegistry()
+    methods = registry.get_all_methods()
     
-    busted_dir = os.path.join(concat_dir, "BUSTED")
-    if not os.path.exists(busted_dir):
-        raise FileNotFoundError(f"Expected to find directory 'BUSTED' in {concat_dir}")
+    # Set to store unique gene names
+    all_genes = set()
     
-    genes = []
-    for file in os.listdir(busted_dir):
-        if file.endswith(".BUSTED.json"):
-            genes.append(file.split(".BUSTED.json")[0])
+    # Collect genes from all method directories
+    for method in methods:
+        # Get method name and file suffix
+        method_name = method.name
+        file_suffix = method.file_suffix
+        
+        # Get method directory from config
+        method_dir_name = METHOD_PATHS.get(method_name, method_name)
+        method_dir = os.path.join(results_path, method_dir_name)
+        
+        if os.path.exists(method_dir) and os.path.isdir(method_dir):
+            for file in os.listdir(method_dir):
+                # Extract gene name from file name based on method suffix
+                if file.endswith(f".{file_suffix}"):
+                    gene = file.split(f".{file_suffix}")[0]
+                    all_genes.add(gene)
     
-    return sorted(genes)
+    if not all_genes:
+        raise FileNotFoundError(f"No HyPhy analysis results found in {results_path}")
+    
+    return sorted(list(all_genes))
 
 
 def load_json(filepath: str) -> dict:

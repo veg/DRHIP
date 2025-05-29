@@ -76,7 +76,7 @@ class MemeMethod(HyPhyMethod):
         ]
     
     @staticmethod
-    def get_site_fields(clades: List[str] = None) -> List[str]:
+    def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
         """Get list of site-specific fields produced by this method."""
         return [
             'meme_alpha',

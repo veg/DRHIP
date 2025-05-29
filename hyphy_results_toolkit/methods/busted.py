@@ -45,21 +45,58 @@ class BustedMethod(HyPhyMethod):
         # Get omega3 distribution
         omega3 = self.get_omega3(results)
         processed['busted_omega3'] = omega3['omega']
-        processed['busted_omega3_weight'] = omega3['weight']
-        
-        # Get branch lengths
-        branch_lengths = results['branch attributes']['0']
-        total_branch_length = sum(float(branch['length']) for branch in branch_lengths.values())
-        processed['total_branch_length'] = total_branch_length
-        
-        # Calculate tree length ratio
-        if 'reference' in results['branch attributes']:
-            ref_branch_lengths = results['branch attributes']['reference']
-            ref_total_length = sum(float(branch['length']) for branch in ref_branch_lengths.values())
-            processed['tree_length_ratio'] = total_branch_length / ref_total_length
+        # Use 'proportion' key for CAPHEINE format or 'weight' for original format
+        if 'weight' in omega3:
+            processed['busted_omega3_weight'] = omega3['weight']
+        elif 'proportion' in omega3:
+            processed['busted_omega3_weight'] = omega3['proportion']
         else:
-            processed['tree_length_ratio'] = 1.0
+            processed['busted_omega3_weight'] = 0.0
+        
+        # Get branch lengths - handle different formats
+        try:
+            # Try to calculate branch lengths
+            total_branch_length = 0
             
+            # Check if we have the original format with 'length' key
+            if '0' in results.get('branch attributes', {}):
+                branch_lengths = results['branch attributes']['0']
+                # Check if the branches have a 'length' key
+                if all('length' in branch for branch in branch_lengths.values()):
+                    total_branch_length = sum(float(branch['length']) for branch in branch_lengths.values())
+                # Otherwise, try to use MG94xREV values as branch lengths
+                else:
+                    for node_name, node_data in branch_lengths.items():
+                        if 'MG94xREV with separate rates for branch sets' in node_data:
+                            total_branch_length += float(node_data['MG94xREV with separate rates for branch sets'])
+            
+            processed['total_branch_length'] = total_branch_length
+            
+            # Calculate tree length ratio if reference exists
+            if 'reference' in results.get('branch attributes', {}):
+                ref_branch_lengths = results['branch attributes']['reference']
+                ref_total_branch_length = 0
+                
+                # Check if the reference branches have a 'length' key
+                if all('length' in branch for branch in ref_branch_lengths.values()):
+                    ref_total_branch_length = sum(float(branch['length']) for branch in ref_branch_lengths.values())
+                # Otherwise, try to use MG94xREV values as branch lengths
+                else:
+                    for node_name, node_data in ref_branch_lengths.items():
+                        if 'MG94xREV with separate rates for branch sets' in node_data:
+                            ref_total_branch_length += float(node_data['MG94xREV with separate rates for branch sets'])
+                
+                if ref_total_branch_length > 0:
+                    processed['tree_length_ratio'] = total_branch_length / ref_total_branch_length
+                else:
+                    processed['tree_length_ratio'] = 1.0
+            else:
+                processed['tree_length_ratio'] = 1.0
+        except Exception:
+            # If anything goes wrong with branch length calculations, use default values
+            processed['total_branch_length'] = 0.0
+            processed['tree_length_ratio'] = 1.0
+        
         return processed
     
     @staticmethod

@@ -40,9 +40,15 @@ def process_gene(gene: str, results_path: str, output_dir: str, site_mappings_di
     
     # Get complete field lists
     summary_fields = SUMMARY_FIELDNAMES + registry.get_all_summary_fields()
-    site_fields = SITES_FIELDNAMES + registry.get_all_site_fields(fh.all_clades)
+    site_fields = SITES_FIELDNAMES + registry.get_all_site_fields(fh.comparison_groups)
+    
+    # Dictionary to track all site fields that might be added dynamically
+    all_site_fields = set(site_fields)
     
     ####### Set up output files #######
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
     outfile_summary = os.path.join(output_dir, f"{gene}_summary.csv")
     outfile_sites = os.path.join(output_dir, f"{gene}_sites.csv")
 
@@ -58,19 +64,29 @@ def process_gene(gene: str, results_path: str, output_dir: str, site_mappings_di
 
     # Load and validate method results
     method_results: Dict[str, Optional[Dict]] = {}
+    missing_methods = []
+    
     for method in methods:
         file_path = method.get_file_path(results_path, gene)
         result = fh.load_json(file_path)
         if result:
             method_results[method.name] = result
         else:
+            missing_methods.append(method.name)
             print(f"Missing {method.name} analysis for {gene}")
-            if method.name in ['BUSTED', 'RELAX', 'CFEL']:  # Required methods
-                return
+    
+    # Check if we have at least one method with results
+    if not method_results:
+        print(f"No method results found for {gene}, skipping")
+        return
+        
+    # Log which methods are missing but we're continuing anyway
+    if missing_methods:
+        print(f"Processing {gene} with {len(method_results)} methods. Missing: {', '.join(missing_methods)}")        
 
-    for clade in fh.all_clades:
-        print(f"Processing {gene} in clade {clade}...")
-        gene_summary_dict = {'gene': gene, 'clade': clade}
+    for group in fh.comparison_groups:
+        print(f"Processing {gene} in comparison group {group}...")
+        gene_summary_dict = {'gene': gene, 'comparison_group': group}
         site_recorder: Dict[int, Dict[str, Any]] = {}
 
         # Process each method's results
@@ -85,16 +101,29 @@ def process_gene(gene: str, results_path: str, output_dir: str, site_mappings_di
                     site_data = method.process_site_data(method_results[method.name])
                     for site, data in site_data.items():
                         if site not in site_recorder:
-                            site_recorder[site] = {'gene': gene, 'site': site, 'clade': clade}
+                            site_recorder[site] = {'gene': gene, 'site': site, 'comparison_group': group}
+                        
+                        # Track any new fields that weren't in the original site_fields list
+                        for field in data.keys():
+                            all_site_fields.add(field)
+                            
                         site_recorder[site].update(data)
 
+        # Convert set to list for CSV writer
+        complete_site_fields = list(all_site_fields)
+                        
         # Write results to files
         with write_lock:
             with open(outfile_summary, 'a', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=summary_fields)
                 writer.writerow(gene_summary_dict)
 
+            # Check if the sites file exists and has content
+            header_exists = os.path.exists(outfile_sites) and os.path.getsize(outfile_sites) > 0
+                
             with open(outfile_sites, 'a', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=site_fields)
+                writer = csv.DictWriter(csvfile, fieldnames=complete_site_fields, extrasaction='ignore')
+                if not header_exists:
+                    writer.writeheader()
                 for site_dict in site_recorder.values():
                     writer.writerow(site_dict)

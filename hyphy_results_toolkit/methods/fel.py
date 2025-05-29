@@ -34,9 +34,9 @@ class FelMethod(HyPhyMethod):
         
         if 'MLE' in results and 'content' in results['MLE']:
             for row in results['MLE']['content']['0']:
-                alpha = float(row[2])  # Alpha (synonymous rate)
-                beta = float(row[3])   # Beta (non-synonymous rate)
-                p_value = float(row[6])  # P-value
+                alpha = float(row[0])  # Alpha (synonymous rate)
+                beta = float(row[1])   # Beta (non-synonymous rate)
+                p_value = float(row[4])  # P-value
                 
                 if p_value <= 0.05:
                     if beta > alpha:
@@ -66,12 +66,12 @@ class FelMethod(HyPhyMethod):
             for row in results['MLE']['content']['0']:
                 site = int(row[0])
                 site_results[site] = {
-                    'fel_alpha': float(row[2]),      # Synonymous rate
-                    'fel_beta': float(row[3]),       # Non-synonymous rate
-                    'fel_pvalue': float(row[6]),     # P-value
+                    'fel_alpha': float(row[0]),      # Synonymous rate
+                    'fel_beta': float(row[1]),       # Non-synonymous rate
+                    'fel_pvalue': float(row[4]),     # P-value
                     'fel_selection': (
-                        'positive' if float(row[3]) > float(row[2]) and float(row[6]) <= 0.05
-                        else 'negative' if float(row[3]) < float(row[2]) and float(row[6]) <= 0.05
+                        'positive' if float(row[1]) > float(row[0]) and float(row[4]) <= 0.05
+                        else 'negative' if float(row[1]) < float(row[0]) and float(row[4]) <= 0.05
                         else 'neutral'
                     )
                 }
@@ -90,7 +90,7 @@ class FelMethod(HyPhyMethod):
         ]
     
     @staticmethod
-    def get_site_fields(clades: List[str] = None) -> List[str]:
+    def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
         """Get list of site-specific fields produced by this method."""
         return [
             'fel_alpha',

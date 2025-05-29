@@ -16,16 +16,16 @@ class CfelMethod(HyPhyMethod):
         self._beta_idx_map = {}
         self._subs_idx_map = {}
     
-    def _build_column_maps(self, headers: List[Tuple[str, str]], clades: List[str]) -> None:
+    def _build_column_maps(self, headers: List[Tuple[str, str]], comparison_groups: List[str]) -> None:
         """Build column lookup maps for the CFEL data.
         
         Args:
             headers: List of (short_label, description) tuples
-            clades: List of clade names
+            comparison_groups: List of comparison group names
         """
         self._header_map = {short_label: i for i, (short_label, _) in enumerate(headers)}
-        self._beta_idx_map = {c: self._header_map[f"beta ({c})"] for c in clades}
-        self._subs_idx_map = {c: self._header_map[f"subs ({c})"] for c in clades}
+        self._beta_idx_map = {g: self._header_map[f"beta ({g})"] for g in comparison_groups}
+        self._subs_idx_map = {g: self._header_map[f"subs ({g})"] for g in comparison_groups}
     
     def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process CFEL results.
@@ -57,12 +57,12 @@ class CfelMethod(HyPhyMethod):
             'subs_idx_map': self._subs_idx_map
         }
     
-    def process_site_data(self, site_data: Dict[str, Any], clades: List[str]) -> Dict[str, Any]:
+    def process_site_data(self, site_data: Dict[str, Any], comparison_groups: List[str]) -> Dict[str, Any]:
         """Process site-specific CFEL data.
         
         Args:
             site_data: Site data from process_results
-            clades: List of clades to process
+            comparison_groups: List of comparison groups to process
             
         Returns:
             Dictionary with site-specific metrics
@@ -76,10 +76,10 @@ class CfelMethod(HyPhyMethod):
             site = int(row[0])  # First column is the site index
             site_dict = {}
             
-            # Extract beta values and substitution counts for each clade
-            for clade in clades:
-                site_dict[f'beta_{clade}'] = float(row[beta_idx_map[clade]])
-                site_dict[f'subs_{clade}'] = float(row[subs_idx_map[clade]])
+            # Extract beta values and substitution counts for each comparison group
+            for group in comparison_groups:
+                site_dict[f'beta_{group}'] = float(row[beta_idx_map[group]])
+                site_dict[f'subs_{group}'] = float(row[subs_idx_map[group]])
             
             site_results[site] = site_dict
         
@@ -94,19 +94,19 @@ class CfelMethod(HyPhyMethod):
         ]
     
     @staticmethod
-    def get_site_fields(clades: List[str]) -> List[str]:
+    def get_site_fields(comparison_groups: List[str]) -> List[str]:
         """Get list of site-specific fields produced by this method.
         
         Args:
-            clades: List of clades to generate fields for
+            comparison_groups: List of comparison groups to generate fields for
             
         Returns:
             List of field names
         """
         fields = []
-        for clade in clades:
+        for group in comparison_groups:
             fields.extend([
-                f'beta_{clade}',
-                f'subs_{clade}'
+                f'beta_{group}',
+                f'subs_{group}'
             ])
         return fields

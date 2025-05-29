@@ -30,7 +30,7 @@ class HyPhyMethod(ABC):
         """
         import os
         from ..config import METHOD_PATHS
-        method_dir = METHOD_PATHS.get(self.name, f"concat/{self.name}")
+        method_dir = METHOD_PATHS.get(self.name, self.name)
         return os.path.join(results_path, method_dir, f"{gene}.{self.file_suffix}")
     
     @abstractmethod

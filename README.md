@@ -12,7 +12,7 @@ pip install -e .
 ### Analysis Methods Support
 - **RELAX**: Test for relaxation of selection
 - **BUSTED**: Branch-site unrestricted statistical test for episodic diversification
-- **CFEL**: Contrast-FEL for comparing selection between clades
+- **CFEL**: Contrast-FEL for comparing selection between groups
 - **FEL**: Fixed effects likelihood test for selection
 - **MEME**: Mixed effects model of evolution
 - **PRIME**: Property Informed Models of Evolution
@@ -26,33 +26,31 @@ pip install -e .
 ## Usage
 
 ```bash
-# Run analysis on HyPhy results
-hyphy-results analyze --results-path /path/to/results --output-dir /path/to/output --site-mappings /path/to/mappings
+# Run analysis on HyPhy results from CAPHEINE workflow
+hyphy-results -i /path/to/test_run/hyphy -o /path/to/output
 ```
 
 ### Input File Structure
 
-The toolkit expects HyPhy results to be organized in the following structure:
+The toolkit is designed to work with HyPhy results from the CAPHEINE workflow, which are organized in the following structure:
 
 ```
-results/
-├── concat/
-│   ├── BUSTED/
-│   │   ├── gene1.BUSTED.json
-│   │   ├── gene2.BUSTED.json
-│   │   └── ...
-│   ├── RELAX/
-│   │   ├── gene1.RELAX.json
-│   │   ├── gene2.RELAX.json
-│   │   └── ...
-│   └── contrastFEL/
-│       ├── gene1.CFEL.json
-│       ├── gene2.CFEL.json
-│       └── ...
+hyphy/
+├── BUSTED/
+│   ├── gene1.BUSTED.json
+│   └── ...
+├── FEL/
+│   ├── gene1.FEL.json
+│   └── ...
+├── MEME/
+│   ├── gene1.MEME.json
+│   └── ...
+├── PRIME/
+│   ├── gene1.PRIME.json
+│   └── ...
 └── site_mappings/  # Optional, for coordinate mapping
     ├── gene1.csv
-    ├── gene2.csv
-    └── ...
+    ├── gene2.csv    └── ...
 ```
 
 #### Site Mapping Files (Optional)
@@ -71,7 +69,7 @@ gene_position,protein_position,reference_codon
   - Branch length information
 
 - **{gene}_sites.csv**: Site-specific analysis including:
-  - Beta values per clade
+  - Beta values per comparison group
   - Substitution counts
   - Conservation status
 

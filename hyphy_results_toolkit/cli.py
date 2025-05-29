@@ -22,29 +22,35 @@ def main():
         description='Summarize HyPhy analysis results for many genes into two csv files'
     )
     arguments.add_argument(
-        '-hr', '--hyphy_results',
-        help='Path to folder of hyphy results',
-        required=True,
+        '-i', '--input',
+        help='Path to hyphy results directory (CAPHEINE workflow format)',
+        required=False,
+        default=os.getcwd(),
+        type=str
+    )
+    arguments.add_argument(
+        '-o', '--output',
+        help='Path to output directory (defaults to current directory)',
+        required=False,
+        default=os.getcwd(),
         type=str
     )
     settings = arguments.parse_args()
 
-    current_directory = os.getcwd()
-    results_path = os.path.join(current_directory, settings.hyphy_results)
+    # Handle both absolute and relative paths for hyphy_results
+    if os.path.isabs(settings.input):
+        results_path = settings.input
+    else:
+        results_path = os.path.join(os.getcwd(), settings.input)
+    
+    # Use output directory from arguments
+    output_dir = settings.output
+    
+    # Check if site_mappings directory exists
     site_mappings_dir = os.path.join(results_path, "site_mappings")
-
-    summary_fieldnames = [
-        'gene', 'clade', 'N', 'T', 'dN/dS', 'sites', 'nt_conserved', 'aa_conserved',
-        'positive_sites', 'negative_sites', 'diff_sites',
-        'BUSTED_pval', 'BUSTED_omega3', 'BUSTED_prop_sites_in_omega3',
-        'RELAX_clade_K', 'RELAX_overall_pval'
-    ]
-    sites_fieldnames = [
-        'gene', 'clade', 'site', 'consensus_site', 'composition',
-        'substitutions', 'majority_residue', 'diff_majority_residue',
-        'unique_aa', 'intensified_positive_selection',
-        'meme_marker', 'cfel_marker', 'prime_marker'
-    ]
+    if not os.path.exists(site_mappings_dir):
+        print(f"Warning: site_mappings directory not found at {site_mappings_dir}")
+        site_mappings_dir = None
 
     genes = fh.get_genes(results_path)
 
@@ -54,10 +60,8 @@ def main():
                 process_gene.process_gene,
                 gene,
                 results_path,
-                current_directory,
-                site_mappings_dir,
-                summary_fieldnames,
-                sites_fieldnames
+                output_dir,
+                site_mappings_dir
             ) for gene in genes
         ]
         for future in concurrent.futures.as_completed(futures):

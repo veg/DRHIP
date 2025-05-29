@@ -46,13 +46,11 @@ class PrimeMethod(HyPhyMethod):
             
             if 'MLE' in results and 'content' in results['MLE']:
                 for row in results['MLE']['content']['0']:
-                    prop_data = row[1].get(prop, {})
-                    p_value = float(prop_data.get('p-value', 1.0))
+                    p_value = row[9]
                     if p_value <= 0.05:
-                        if prop_data.get('preserved', False):
-                            sites_conserved += 1
-                        else:
-                            sites_altered += 1
+                        sites_conserved += 1
+                    else:
+                        sites_altered += 1
             
             prop_key = prop.lower().replace(' ', '_')
             processed[f'prime_{prop_key}_conserved'] = sites_conserved
@@ -72,21 +70,21 @@ class PrimeMethod(HyPhyMethod):
         site_results = {}
         
         if 'MLE' in results and 'content' in results['MLE']:
+            site_index = 1
             for row in results['MLE']['content']['0']:
-                site = int(row[0])
                 site_dict = {}
                 
                 for prop in self.PROPERTIES:
-                    prop_data = row[1].get(prop, {})
-                    prop_key = prop.lower().replace(' ', '_')
+                    p_value = row[9]
                     
                     site_dict.update({
-                        f'prime_{prop_key}_pvalue': float(prop_data.get('p-value', 1.0)),
-                        f'prime_{prop_key}_preserved': prop_data.get('preserved', False),
-                        f'prime_{prop_key}_altered': not prop_data.get('preserved', True)
+                        f'prime_{site_index}_pvalue': p_value,
+                        f'prime_{site_index}_conserved': p_value <= 0.05,
+                        f'prime_{site_index}_altered': p_value > 0.05
                     })
                 
-                site_results[site] = site_dict
+                site_results[site_index-1] = site_dict
+                site_index += 1
         
         return site_results
     
@@ -110,17 +108,8 @@ class PrimeMethod(HyPhyMethod):
         return fields
     
     @staticmethod
-    def get_site_fields(clades: List[str] = None) -> List[str]:
+    def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
         """Get list of site-specific fields produced by this method."""
-        fields = []
-        
-        # Add fields for each property
-        for prop in PrimeMethod.PROPERTIES:
-            prop_key = prop.lower().replace(' ', '_')
-            fields.extend([
-                f'prime_{prop_key}_pvalue',
-                f'prime_{prop_key}_preserved',
-                f'prime_{prop_key}_altered'
-            ])
-        
-        return fields
+        # For PRIME, we'll return an empty list since we handle site fields differently
+        # The actual site fields will be determined at runtime based on the data
+        return []
