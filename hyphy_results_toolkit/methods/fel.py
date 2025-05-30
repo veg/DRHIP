@@ -32,11 +32,19 @@ class FelMethod(HyPhyMethod):
         sites_under_selection = 0
         sites_under_negative_selection = 0
         
-        if 'MLE' in results and 'content' in results['MLE']:
+        if self.has_mle_content(results) and self.has_mle_headers(results):
+            # Get header indices
+            header_indices = self.get_header_indices(results)
+            
+            # Get indices for the values we need
+            alpha_index = self.get_column_index(header_indices, 'alpha', 0)
+            beta_index = self.get_column_index(header_indices, 'beta', 1)
+            pvalue_index = self.get_column_index(header_indices, 'p-value', 4)
+            
             for row in results['MLE']['content']['0']:
-                alpha = float(row[0])  # Alpha (synonymous rate)
-                beta = float(row[1])   # Beta (non-synonymous rate)
-                p_value = float(row[4])  # P-value
+                alpha = float(row[alpha_index])  # Alpha (synonymous rate)
+                beta = float(row[beta_index])    # Beta (non-synonymous rate)
+                p_value = float(row[pvalue_index])  # P-value
                 
                 if p_value <= 0.05:
                     if beta > alpha:
@@ -51,7 +59,7 @@ class FelMethod(HyPhyMethod):
         
         return processed
     
-    def process_site_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def process_site_data(self, results: Dict[str, Any]) -> Dict[int, Dict[str, Any]]:
         """Process site-specific FEL data.
         
         Args:
@@ -61,21 +69,32 @@ class FelMethod(HyPhyMethod):
             Dictionary with site-specific metrics
         """
         site_results = {}
-        
-        if 'MLE' in results and 'content' in results['MLE']:
+        if self.has_mle_content(results) and self.has_mle_headers(results):
+            # Get header indices
+            header_indices = self.get_header_indices(results)
+            
+            # Get indices for the values we need
+            site_index = self.get_column_index(header_indices, 'Site', 0)
+            alpha_index = self.get_column_index(header_indices, 'alpha', 0)
+            beta_index = self.get_column_index(header_indices, 'beta', 1)
+            pvalue_index = self.get_column_index(header_indices, 'p-value', 4)
+            
             for row in results['MLE']['content']['0']:
-                site = int(row[0])
+                site = int(row[site_index])
+                alpha = float(row[alpha_index])
+                beta = float(row[beta_index])
+                pvalue = float(row[pvalue_index])
+                
                 site_results[site] = {
-                    'fel_alpha': float(row[0]),      # Synonymous rate
-                    'fel_beta': float(row[1]),       # Non-synonymous rate
-                    'fel_pvalue': float(row[4]),     # P-value
+                    'fel_alpha': alpha,      # Synonymous rate
+                    'fel_beta': beta,        # Non-synonymous rate
+                    'fel_pvalue': pvalue,    # P-value
                     'fel_selection': (
-                        'positive' if float(row[1]) > float(row[0]) and float(row[4]) <= 0.05
-                        else 'negative' if float(row[1]) < float(row[0]) and float(row[4]) <= 0.05
+                        'positive' if beta > alpha and pvalue <= 0.05
+                        else 'negative' if beta < alpha and pvalue <= 0.05
                         else 'neutral'
                     )
                 }
-        
         return site_results
     
     @staticmethod

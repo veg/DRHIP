@@ -55,3 +55,60 @@ class HyPhyMethod(ABC):
             Processed site data dictionary
         """
         return {}
+    
+    def has_mle_content(self, results: Dict[str, Any]) -> bool:
+        """Check if results have MLE content structure.
+        
+        Args:
+            results: Raw results dictionary
+            
+        Returns:
+            True if MLE content structure is present, False otherwise
+        """
+        return ('MLE' in results and 
+                'content' in results.get('MLE', {}) and 
+                '0' in results.get('MLE', {}).get('content', {}))
+    
+    def has_mle_headers(self, results: Dict[str, Any]) -> bool:
+        """Check if results have MLE headers structure.
+        
+        Args:
+            results: Raw results dictionary
+            
+        Returns:
+            True if MLE headers structure is present, False otherwise
+        """
+        return ('MLE' in results and 
+                'headers' in results.get('MLE', {}))
+    
+    def get_header_indices(self, results: Dict[str, Any]) -> Dict[str, int]:
+        """Get mapping from header names to column indices.
+        
+        Args:
+            results: Raw results dictionary
+            
+        Returns:
+            Dictionary mapping header names to column indices
+        """
+        header_indices = {}
+        
+        if self.has_mle_headers(results):
+            headers = results['MLE']['headers']
+            for i, (header_name, _) in enumerate(headers):
+                header_indices[header_name] = i
+        
+        return header_indices
+    
+    def get_column_index(self, header_indices: Dict[str, int], 
+                         column_name: str, default_index: int) -> int:
+        """Get index for a specific column with fallback to default.
+        
+        Args:
+            header_indices: Dictionary mapping header names to column indices
+            column_name: Name of the column to find
+            default_index: Default index to use if column name not found
+            
+        Returns:
+            Column index
+        """
+        return header_indices.get(column_name, default_index)

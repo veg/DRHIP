@@ -44,9 +44,15 @@ class PrimeMethod(HyPhyMethod):
             sites_conserved = 0
             sites_altered = 0
             
-            if 'MLE' in results and 'content' in results['MLE']:
+            if self.has_mle_content(results) and self.has_mle_headers(results):
+                # Get header indices
+                header_indices = self.get_header_indices(results)
+                
+                # Get index for p-value
+                pvalue_index = self.get_column_index(header_indices, 'p-value', 9)
+                
                 for row in results['MLE']['content']['0']:
-                    p_value = row[9]
+                    p_value = float(row[pvalue_index])
                     if p_value <= 0.05:
                         sites_conserved += 1
                     else:
@@ -69,13 +75,19 @@ class PrimeMethod(HyPhyMethod):
         """
         site_results = {}
         
-        if 'MLE' in results and 'content' in results['MLE']:
+        if self.has_mle_content(results) and self.has_mle_headers(results):
+            # Get header indices
+            header_indices = self.get_header_indices(results)
+            
+            # Get index for p-value
+            pvalue_index = self.get_column_index(header_indices, 'p-value', 9)
+            
             site_index = 1
             for row in results['MLE']['content']['0']:
                 site_dict = {}
                 
                 for prop in self.PROPERTIES:
-                    p_value = row[9]
+                    p_value = float(row[pvalue_index])
                     
                     site_dict.update({
                         f'prime_{site_index}_pvalue': p_value,

@@ -30,9 +30,15 @@ class MemeMethod(HyPhyMethod):
         
         # Process sites under selection
         sites_under_selection = 0
-        if 'MLE' in results and 'content' in results['MLE']:
+        if self.has_mle_content(results) and self.has_mle_headers(results):
+            # Get header indices
+            header_indices = self.get_header_indices(results)
+            
+            # Get index for p-value
+            pvalue_index = self.get_column_index(header_indices, 'p-value', 7)  # P-value for episodic selection
+            
             for row in results['MLE']['content']['0']:
-                p_value = float(row[7])  # P-value for episodic selection
+                p_value = float(row[pvalue_index])
                 if p_value <= 0.05:
                     sites_under_selection += 1
         
@@ -51,16 +57,33 @@ class MemeMethod(HyPhyMethod):
         """
         site_results = {}
         
-        if 'MLE' in results and 'content' in results['MLE']:
+        if self.has_mle_content(results) and self.has_mle_headers(results):
+            # Get header indices
+            header_indices = self.get_header_indices(results)
+            
+            # Get indices for the values we need (with defaults matching original hardcoded indices)
+            site_index = self.get_column_index(header_indices, 'Site', 0)
+            alpha_index = self.get_column_index(header_indices, 'alpha', 2)
+            beta_neg_index = self.get_column_index(header_indices, 'beta-', 3)
+            beta_plus_index = self.get_column_index(header_indices, 'beta+', 4)
+            weight_index = self.get_column_index(header_indices, 'weight', 5)
+            pvalue_index = self.get_column_index(header_indices, 'p-value', 7)
+            
             for row in results['MLE']['content']['0']:
-                site = int(row[0])
+                site = int(row[site_index])
+                alpha = float(row[alpha_index])
+                beta_neg = float(row[beta_neg_index])
+                beta_plus = float(row[beta_plus_index])
+                weight = float(row[weight_index])
+                pvalue = float(row[pvalue_index])
+                
                 site_results[site] = {
-                    'meme_alpha': float(row[2]),     # Synonymous rate
-                    'meme_beta_neg': float(row[3]),  # Non-synonymous rate for negative selection
-                    'meme_beta_plus': float(row[4]), # Non-synonymous rate for positive selection
-                    'meme_weight': float(row[5]),    # Weight of positive selection class
-                    'meme_pvalue': float(row[7]),    # P-value for episodic selection
-                    'meme_selection': 'episodic' if float(row[7]) <= 0.05 else 'none'
+                    'meme_alpha': alpha,     # Synonymous rate
+                    'meme_beta_neg': beta_neg,  # Non-synonymous rate for negative selection
+                    'meme_beta_plus': beta_plus, # Non-synonymous rate for positive selection
+                    'meme_weight': weight,    # Weight of positive selection class
+                    'meme_pvalue': pvalue,    # P-value for episodic selection
+                    'meme_selection': 'episodic' if pvalue <= 0.05 else 'none'
                 }
         
         return site_results
