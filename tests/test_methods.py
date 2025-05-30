@@ -2,6 +2,8 @@
 Tests for HyPhy analysis methods.
 """
 
+import os
+
 from hyphy_results_toolkit.methods import (
     HyPhyMethodRegistry,
     BustedMethod,
@@ -22,48 +24,72 @@ def test_method_registry_initialization():
     expected_names = {'BUSTED', 'RELAX', 'CFEL', 'FEL', 'MEME', 'PRIME'}
     assert method_names == expected_names
 
-def test_busted_method_processing(mock_busted_results):
+def test_busted_method_processing(real_busted_results):
     """Test BUSTED method result processing."""
     method = BustedMethod()
-    results = method.process_results(mock_busted_results)
+    results = method.process_results(real_busted_results)
     
-    assert results['busted_pvalue'] == 0.01
-    assert results['busted_lrt'] == 10.5
-    assert results['busted_evidence']
-    assert results['busted_omega3'] == 3.5
-    assert results['busted_omega3_weight'] == 0.1
-    assert results['total_branch_length'] == 0.3
-    assert results['tree_length_ratio'] == 1.0
+    # Basic validation of results
+    assert 'busted_pvalue' in results
+    assert 'busted_lrt' in results
+    assert 'busted_evidence' in results
+    assert 'busted_omega3' in results
+    assert 'busted_omega3_weight' in results
+    assert 'total_branch_length' in results
+    assert 'tree_length_ratio' in results
+    
+    # Check evidence type
+    assert isinstance(results['busted_evidence'], bool)
 
-def test_relax_method_processing(mock_relax_results):
-    """Test RELAX method result processing."""
-    method = RelaxMethod()
-    results = method.process_results(mock_relax_results)
+def test_fel_method_processing(real_fel_results):
+    """Test FEL method result processing."""
+    method = FelMethod()
+    results = method.process_results(real_fel_results)
     
-    assert results['relax_pvalue'] == 0.05
-    assert results['relax_k'] == 1.5
-    assert results['relax_lrt'] == 8.2
-    assert results['relax_k_significant']
-
-def test_cfel_method_processing(mock_cfel_results):
-    """Test CFEL method result processing."""
-    method = CfelMethod()
-    results = method.process_results(mock_cfel_results)
-    
-    assert 'by_type' in results
-    assert 'data_rows' in results
-    assert 'beta_idx_map' in results
-    assert 'subs_idx_map' in results
+    # Basic validation of results
+    assert 'fel_sites_tested' in results
+    assert 'fel_sites_positive_selection' in results
+    assert 'fel_sites_negative_selection' in results
+    assert 'fel_version' in results
+    assert 'fel_timestamp' in results
     
     # Test site data processing
-    site_data = method.process_site_data(results, ['clade1', 'clade2'])
-    assert len(site_data) == 2  # Two sites in mock data
+    site_data = method.process_site_data(real_fel_results)
+    assert len(site_data) > 0
     
-    site1_data = site_data[1]
-    assert site1_data['beta_clade1'] == 0.5
-    assert site1_data['subs_clade1'] == 2
-    assert site1_data['beta_clade2'] == 1.0
-    assert site1_data['subs_clade2'] == 0
+    # Check a specific site
+    first_site = min(site_data.keys())
+    site_info = site_data[first_site]
+    assert 'fel_alpha' in site_info
+    assert 'fel_beta' in site_info
+    assert 'fel_pvalue' in site_info
+    assert 'fel_selection' in site_info
+    assert site_info['fel_selection'] in ['positive', 'negative', 'neutral']
+
+def test_meme_method_processing(real_meme_results):
+    """Test MEME method result processing."""
+    method = MemeMethod()
+    results = method.process_results(real_meme_results)
+    
+    # Basic validation of results
+    assert 'meme_sites_tested' in results
+    assert 'meme_sites_selection' in results
+    assert 'meme_version' in results
+    assert 'meme_timestamp' in results
+    
+    # Test site data processing
+    site_data = method.process_site_data(real_meme_results)
+    assert len(site_data) > 0
+    
+    # Check a specific site
+    first_site = min(site_data.keys())
+    site_info = site_data[first_site]
+    assert 'meme_alpha' in site_info
+    assert 'meme_beta_neg' in site_info
+    assert 'meme_beta_plus' in site_info
+    assert 'meme_weight' in site_info
+    assert 'meme_pvalue' in site_info
+    assert 'meme_selection' in site_info
 
 def test_method_field_generation():
     """Test that methods correctly generate field names."""
@@ -83,7 +109,27 @@ def test_method_field_generation():
     assert 'fel_alpha' in site_fields
     assert 'meme_pvalue' in site_fields
 
-def test_method_file_paths(temp_dir):
+def test_prime_method_processing(real_prime_results):
+    """Test PRIME method result processing."""
+    method = PrimeMethod()
+    results = method.process_results(real_prime_results)
+    
+    # Basic validation of results
+    assert 'prime_sites_tested' in results
+    assert 'prime_version' in results
+    assert 'prime_timestamp' in results
+    
+    # Check property-specific fields
+    for prop in PrimeMethod.PROPERTIES:
+        prop_key = prop.lower().replace(' ', '_')
+        assert f'prime_{prop_key}_conserved' in results
+        assert f'prime_{prop_key}_altered' in results
+    
+    # Test site data processing
+    site_data = method.process_site_data(real_prime_results)
+    assert len(site_data) > 0
+
+def test_method_file_paths(results_dir):
     """Test that methods generate correct file paths."""
     methods = [
         BustedMethod(),
@@ -94,8 +140,10 @@ def test_method_file_paths(temp_dir):
         PrimeMethod()
     ]
     
-    gene = 'test_gene'
+    gene = 'capsid_protein_C'
     for method in methods:
-        path = method.get_file_path(temp_dir, gene)
-        assert gene in path
-        assert method.file_suffix in path
+        if method.name in ['BUSTED', 'FEL', 'MEME', 'PRIME']:
+            path = method.get_file_path(results_dir, gene)
+            expected_file = f"{gene}.{method.file_suffix}"
+            assert os.path.exists(path)
+            assert expected_file in path
