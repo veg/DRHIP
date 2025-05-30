@@ -70,24 +70,41 @@ class PrimeMethod(HyPhyMethod):
         site_results = {}
         
         if self.has_mle_content(results) and self.has_mle_headers(results):
-            # Get header indices
-            header_indices = self.get_header_indices(results)
+            # Get the headers directly from the results
+            headers = results['MLE']['headers']
             
-            # Get indices for the values we need
-            site_index = self.get_column_index(header_indices, 'Site', 0)
-            pvalue_index = self.get_column_index(header_indices, 'p-value', 9)
+            # Extract property tags from headers, similar to End2End-DENV
+            prime_tags = []
+            p_indices = []
             
-            for row in results['MLE']['content']['0']:
-                site = int(row[site_index]) if site_index >= 0 else 0
-                if site_index < 0:
-                    site += 1  # If site index not found, increment counter
+            for i, (short_label, description) in enumerate(headers):
+                if short_label == 'p-value':
+                    p_indices.append(i)
+                    prime_tags.append((0, 'overall'))
+                elif short_label.startswith('p') and short_label[1:].isdigit():
+                    p_indices.append(i)
+                    # Extract property name from description
+                    property_name = description.split(' ')[-1] if ' ' in description else short_label
+                    prime_tags.append((int(short_label[1:]), property_name))
+            
+            # Sort tags by their index
+            prime_tags = [tag for _, tag in sorted(prime_tags, key=lambda x: x[0])]
+            
+            # Process each site
+            for row_idx, row in enumerate(results['MLE']['content']['0']):
+                site = row_idx  # Use row index as site number
                 
-                p_value = float(row[pvalue_index])
+                # Get p-values for all properties
+                pvals = [float(row[idx]) for idx in p_indices]
                 
-                site_results[site] = {
-                    # Only include the marker field
-                    'prime_marker': 'overall' if p_value <= 0.05 else '-'
-                }
+                # If any p-value is significant
+                if min(pvals) <= 0.05:
+                    # Collect significant property tags
+                    significant_tags = [prime_tags[i] for i, pval in enumerate(pvals) if pval <= 0.05]
+                    
+                    site_results[site] = {
+                        'prime_marker': ','.join(significant_tags) if significant_tags else '-'
+                    }
         
         return site_results
     
@@ -97,7 +114,7 @@ class PrimeMethod(HyPhyMethod):
         return []  # No summary fields needed
     
     @staticmethod
-    def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
+    def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
         return [
             'prime_marker'

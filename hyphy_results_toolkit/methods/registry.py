@@ -69,17 +69,10 @@ class HyPhyMethodRegistry:
                 fields.update(method.get_summary_fields())
         return sorted(list(fields))
     
-    def get_all_site_fields(self, comparison_groups: List[str]) -> List[str]:
-        """Get all site-specific fields from all registered methods.
-        
-        Args:
-            comparison_groups: List of comparison groups to get fields for
-            
-        Returns:
-            List of all site field names
-        """
+    def get_all_site_fields(self) -> List[str]:
+        """Get all site-specific fields from all registered methods."""
         fields = set()
         for method in self._methods.values():
             if hasattr(method, 'get_site_fields'):
-                fields.update(method.get_site_fields(comparison_groups))
+                fields.update(method.get_site_fields())
         return sorted(list(fields))

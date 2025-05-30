@@ -14,7 +14,6 @@ METHOD_PATHS = {
 
 SUMMARY_FIELDNAMES = [
     'gene',
-    'comparison_group',  # Keep using comparison_group internally
     'N',      # Number of sequences
     'T',      # Total branch length
     'dN/dS',  # Overall dN/dS ratio
@@ -27,9 +26,7 @@ SUMMARY_FIELDNAMES = [
 
 SITES_FIELDNAMES = [
     'gene',
-    'comparison_group',  # Keep using comparison_group internally
     'site',
-    'consensus_site',
     'composition',
     'substitutions',
     'majority_residue',

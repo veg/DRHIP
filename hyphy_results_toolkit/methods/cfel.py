@@ -92,11 +92,17 @@ class CfelMethod(HyPhyMethod):
             
             # Create a formatted marker string for the cfel_marker field
             if p_value <= 0.05:
-                marker = f"overall: {p_value:.3f}"
+                # Format similar to End2End-DENV
+                comparisons = []
+                comparisons.append(f"overall: {p_value:.3f}")
+                
+                # Add pairwise comparisons
                 for i, group1 in enumerate(by_type.keys()):
                     for group2 in list(by_type.keys())[i+1:]:
-                        # Add group comparison markers
-                        marker += f", {group1} vs {group2}: {p_value:.3f}"
+                        comparison_key = f"{group1} vs {group2}"
+                        comparisons.append(f"{comparison_key}: {p_value:.3f}")
+                        
+                marker = ", ".join(comparisons)
             else:
                 marker = "-"
             
@@ -112,15 +118,8 @@ class CfelMethod(HyPhyMethod):
         return []  # No summary fields needed
     
     @staticmethod
-    def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
-        """Get list of site-specific fields produced by this method.
-        
-        Args:
-            comparison_groups: List of comparison groups (not used)
-            
-        Returns:
-            List of field names
-        """
+    def get_site_fields() -> List[str]:
+        """Get list of site-specific fields produced by this method."""
         return [
             'cfel_marker'
         ]

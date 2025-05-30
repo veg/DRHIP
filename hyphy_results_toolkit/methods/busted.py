@@ -44,11 +44,11 @@ class BustedMethod(HyPhyMethod):
         omega3 = self.get_omega3(results)
         processed['BUSTED_omega3'] = omega3['omega']  # Renamed to match desired format
         
-        # Get proportion of sites in omega3 category
+        # Get proportion of sites in omega3 category and convert to percentage
         if 'weight' in omega3:
-            processed['BUSTED_prop_sites_in_omega3'] = omega3['weight']  # Renamed to match desired format
+            processed['BUSTED_prop_sites_in_omega3'] = omega3['weight'] * 100.0  # Convert to percentage
         elif 'proportion' in omega3:
-            processed['BUSTED_prop_sites_in_omega3'] = omega3['proportion']  # Renamed to match desired format
+            processed['BUSTED_prop_sites_in_omega3'] = omega3['proportion'] * 100.0  # Convert to percentage
         else:
             processed['BUSTED_prop_sites_in_omega3'] = 0.0
         

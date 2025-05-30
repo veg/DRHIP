@@ -87,15 +87,17 @@ class FelMethod(HyPhyMethod):
                     else 'neutral'
                 )
                 
-                site_results[site_idx] = {
-                    # Only include fields that are actually used
-                    'fel_selection': selection_type
-                }
-                
-                # Update site-specific fields for the desired output format
-                if selection_type == 'positive':
-                    # Mark this site as under positive selection
-                    site_results[site_idx]['intensified_positive_selection'] = True
+                # In End2End-DENV, FEL stores [p-value, is_positive]
+                # where is_positive is True if beta > alpha (positive selection)
+                if pvalue <= 0.05:
+                    site_results[site_idx] = {
+                        'fel_selection': selection_type
+                    }
+                    
+                    # Update site-specific fields for the desired output format
+                    if selection_type == 'positive':
+                        # Mark this site as under positive selection
+                        site_results[site_idx]['intensified_positive_selection'] = True
         
         return site_results
     
@@ -108,7 +110,7 @@ class FelMethod(HyPhyMethod):
         ]
     
     @staticmethod
-    def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
+    def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
         return [
             'fel_selection'

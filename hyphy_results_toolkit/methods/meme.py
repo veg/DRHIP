@@ -66,7 +66,7 @@ class MemeMethod(HyPhyMethod):
                 pvalue = float(row[pvalue_index])
                 
                 site_results[site] = {
-                    'meme_marker': f'p={pvalue:.3f}' if pvalue <= 0.05 else '-'
+                    'meme_marker': f'{pvalue:.3f}' if pvalue <= 0.05 else '-'
                 }
         
         return site_results
@@ -77,7 +77,7 @@ class MemeMethod(HyPhyMethod):
         return []  # No summary fields needed
     
     @staticmethod
-    def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
+    def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
         return [
             'meme_marker'

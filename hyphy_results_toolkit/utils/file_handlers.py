@@ -14,10 +14,6 @@ from typing import List
 from ..methods.registry import HyPhyMethodRegistry
 from ..config import METHOD_PATHS
 
-# Default comparison groups 
-# These represent different sequence groups being compared in selection analyses
-comparison_groups = ['foreground', 'background']
-
 def get_genes(results_path: str) -> List[str]:
     """Get list of genes from the results directory.
     
