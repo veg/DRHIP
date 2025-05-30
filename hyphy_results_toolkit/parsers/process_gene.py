@@ -20,14 +20,13 @@ from ..config import SUMMARY_FIELDNAMES, SITES_FIELDNAMES
 write_lock = threading.Lock()
 
 
-def process_gene(gene: str, results_path: str, output_dir: str, site_mappings_dir: str) -> None:
+def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     """Process HyPhy results for a single gene.
     
     Args:
         gene: Name of the gene to process
         results_path: Path to the directory containing HyPhy results
         output_dir: Directory to write output files
-        site_mappings_dir: Directory containing site mapping files
         
     The function processes multiple HyPhy analysis results using registered methods.
     Each method processes its own results and contributes to summary and site-specific data.

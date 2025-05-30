@@ -27,7 +27,7 @@ pip install -e .
 
 ```bash
 # Run analysis on HyPhy results from CAPHEINE workflow
-hyphy-results -i /path/to/test_run/hyphy -o /path/to/output
+hyphy-results -i /path/to/results/hyphy -o /path/to/output
 ```
 
 ### Input File Structure
@@ -45,20 +45,9 @@ hyphy/
 ├── MEME/
 │   ├── gene1.MEME.json
 │   └── ...
-├── PRIME/
-│   ├── gene1.PRIME.json
-│   └── ...
-└── site_mappings/  # Optional, for coordinate mapping
-    ├── gene1.csv
-    ├── gene2.csv    
-```
-
-#### Site Mapping Files
-TSV files mapping between site positions in different results (e.g., between FEL in clade1 and contrastFEL across all clades). Format:
-```tsv
-Consensus_Site	Consensus_capsid_protein_C_concat_1_Site	Consensus_capsid_protein_C_DENV1_1_Site
-0	0	0
-...
+└── PRIME/
+    ├── gene1.PRIME.json
+    └── ...
 ```
 
 ### Output Files

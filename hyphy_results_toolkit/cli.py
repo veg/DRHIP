@@ -46,11 +46,8 @@ def main():
     # Use output directory from arguments
     output_dir = settings.output
     
-    # Check if site_mappings directory exists
-    site_mappings_dir = os.path.join(results_path, "site_mappings")
-    if not os.path.exists(site_mappings_dir):
-        print(f"Warning: site_mappings directory not found at {site_mappings_dir}")
-        site_mappings_dir = None
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
 
     genes = fh.get_genes(results_path)
 
@@ -60,8 +57,7 @@ def main():
                 process_gene.process_gene,
                 gene,
                 results_path,
-                output_dir,
-                site_mappings_dir
+                output_dir
             ) for gene in genes
         ]
         for future in concurrent.futures.as_completed(futures):
