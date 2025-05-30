@@ -11,6 +11,7 @@ class CfelMethod(HyPhyMethod):
     
     def __init__(self):
         """Initialize CFEL method."""
+        # CFEL files are named as gene.CFEL.json in the contrastFEL directory
         super().__init__("CFEL", "CFEL.json")
         self._header_map = {}
         self._beta_idx_map = {}
@@ -36,6 +37,8 @@ class CfelMethod(HyPhyMethod):
         Returns:
             Processed results with standardized keys
         """
+        processed = {}
+        
         # Get the tag for each branch
         tested = results['tested']['0']
         by_type: Dict[str, List[str]] = {}
@@ -50,12 +53,54 @@ class CfelMethod(HyPhyMethod):
         headers = results["MLE"]["headers"]
         self._build_column_maps(headers, list(by_type.keys()))
         
-        return {
-            'by_type': by_type,
-            'data_rows': results["MLE"]["content"]["0"],
-            'beta_idx_map': self._beta_idx_map,
-            'subs_idx_map': self._subs_idx_map
-        }
+        # Calculate invariant sites (conserved sites)
+        data_rows = results["MLE"]["content"]["0"]
+        nt_conserved = 0
+        aa_conserved = 0
+        
+        for row in data_rows:
+            # Mark if the site is invariant across clades (first four entries in the list are 0)
+            if max(row[0:4]) == 0.0:
+                nt_conserved += 1
+            elif max(row[1:4]) == 0.0:
+                aa_conserved += 1
+        
+        processed['nt_conserved'] = nt_conserved
+        processed['aa_conserved'] = aa_conserved
+        
+        # Calculate number of sites
+        processed['sites'] = len(data_rows)
+        
+        # For each comparison group, calculate N and T
+        for group, branches in by_type.items():
+            # Number of sequences in this group
+            processed[f'N_{group}'] = len(branches)
+            
+            # Total branch length for this group
+            try:
+                branch_lengths = [results['branch attributes']['0'][bn]['Global MG94xREV'] for bn in branches]
+                processed[f'T_{group}'] = sum(branch_lengths)
+            except (KeyError, TypeError):
+                processed[f'T_{group}'] = 0.0
+        
+        # If there's just one group, use its values for the standard fields
+        if len(by_type) == 1:
+            group = list(by_type.keys())[0]
+            processed['N'] = processed[f'N_{group}']
+            processed['T'] = processed[f'T_{group}']
+        
+        # Get dN/dS for each group
+        for k, r in results['fits']['Global MG94xREV']['Rate Distributions'].items():
+            for group in by_type.keys():
+                if group in k:
+                    processed[f'dN/dS_{group}'] = r[0][0]
+        
+        # If there's just one group, use its dN/dS for the standard field
+        if len(by_type) == 1:
+            group = list(by_type.keys())[0]
+            processed['dN/dS'] = processed[f'dN/dS_{group}']
+        
+        return processed
     
     def process_site_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process site-specific CFEL data.
@@ -115,8 +160,15 @@ class CfelMethod(HyPhyMethod):
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
-        return []  # No summary fields needed
-    
+        return [
+            'N',
+            'T',
+            'dN/dS',
+            'sites',
+            'nt_conserved',
+            'aa_conserved'
+        ]
+        
     @staticmethod
     def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""

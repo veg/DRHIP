@@ -12,6 +12,8 @@ METHOD_PATHS = {
     'PRIME': 'PRIME'
 }
 
+# The values in these lists are populated by individual methods
+# The lists here are used to validate that all expected fields are present in the output files
 SUMMARY_FIELDNAMES = [
     'gene',
     'N',      # Number of sequences
@@ -21,7 +23,6 @@ SUMMARY_FIELDNAMES = [
     'nt_conserved',
     'aa_conserved',
     'diff_sites',
-    # Method-specific fields will be added by each method
 ]
 
 SITES_FIELDNAMES = [
@@ -33,5 +34,4 @@ SITES_FIELDNAMES = [
     'diff_majority_residue',
     'unique_aa',
     'intensified_positive_selection',
-    # Method-specific fields will be added by each method
 ]

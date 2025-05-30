@@ -4,6 +4,7 @@ BUSTED (Branch-Site Unrestricted Statistical Test for Episodic Diversification) 
 
 from typing import Dict, Any, List
 
+from ..utils import tree_helpers
 from .base import HyPhyMethod
 
 class BustedMethod(HyPhyMethod):
@@ -114,6 +115,77 @@ class BustedMethod(HyPhyMethod):
         
         return processed
     
+    def process_site_data(self, results: Dict[str, Any]) -> Dict[int, Dict[str, Any]]:
+        """Process site-specific data from BUSTED results.
+        
+        Args:
+            results: Raw BUSTED results dictionary
+            
+        Returns:
+            Dictionary mapping site indices to site-specific data
+        """
+        site_data = {}
+        
+        # Check if we have substitutions data
+        if 'substitutions' not in results or '0' not in results['substitutions']:
+            return site_data
+            
+        # Get the substitutions data
+        substitutions = results['substitutions']['0']
+        
+        # Get the tree
+        if 'input' not in results or 'trees' not in results['input'] or '0' not in results['input']['trees']:
+            return site_data
+            
+        # Parse the tree
+        internal_branches = {}
+        tree = tree_helpers.newick_parser(results['input']['trees']['0'], {}, internal_branches)
+        
+        if tree['error'] is not None:
+            print(f"Error parsing tree: {tree['error']}")
+            return site_data
+            
+        tree = tree['json']
+        
+        # Process each site
+        for site_idx, site_subs in substitutions.items():
+            site_num = int(site_idx)
+            
+            # Initialize composition and substitution counters
+            composition = {}
+            subs = {}
+            
+            # Traverse the tree to collect composition and substitution data
+            tree_helpers.traverse_tree(
+                tree, 
+                None, 
+                site_subs, 
+                internal_branches, 
+                composition, 
+                subs, 
+                'test'  # Default leaf label
+            )
+            
+            # Process the composition data
+            site_composition = []
+            for tag, counts in composition.items():
+                for aa, count in counts.items():
+                    site_composition.append(f"{aa}:{count}")
+            
+            # Process the substitution data
+            site_substitutions = []
+            for tag, counts in subs.items():
+                for sub, count in counts.items():
+                    site_substitutions.append(f"{sub}:{count}")
+            
+            # Store the site data
+            site_data[site_num] = {
+                'composition': ','.join(site_composition),
+                'substitutions': ','.join(site_substitutions)
+            }
+            
+        return site_data
+    
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
@@ -121,4 +193,12 @@ class BustedMethod(HyPhyMethod):
             'BUSTED_pval',
             'BUSTED_omega3',
             'BUSTED_prop_sites_in_omega3'
+        ]
+        
+    @staticmethod
+    def get_site_fields() -> List[str]:
+        """Get list of site-specific fields produced by this method."""
+        return [
+            'composition',
+            'substitutions'
         ]

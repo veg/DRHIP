@@ -24,9 +24,21 @@ class FelMethod(HyPhyMethod):
         """
         processed = {}
         
+        # Extract number of sites from input data
+        if 'input' in results and 'number of sites' in results['input']:
+            processed['sites'] = results['input']['number of sites']
+        elif 'input' in results and 'sites' in results['input']:
+            processed['sites'] = results['input']['sites']
+        elif self.has_mle_content(results):
+            # If not explicitly provided, use the number of rows in the MLE content
+            processed['sites'] = len(results['MLE']['content']['0'])
+        else:
+            processed['sites'] = 0
+        
         # Process tested sites
         sites_under_selection = 0
         sites_under_negative_selection = 0
+        diff_sites = 0
         
         if self.has_mle_content(results) and self.has_mle_headers(results):
             # Get header indices
@@ -43,6 +55,7 @@ class FelMethod(HyPhyMethod):
                 p_value = float(row[pvalue_index])  # P-value
                 
                 if p_value <= 0.05:
+                    diff_sites += 1
                     if beta > alpha:
                         sites_under_selection += 1
                     elif beta < alpha:
@@ -50,8 +63,21 @@ class FelMethod(HyPhyMethod):
         
         processed.update({
             'positive_sites': sites_under_selection,  
-            'negative_sites': sites_under_negative_selection,  
+            'negative_sites': sites_under_negative_selection,
+            'diff_sites': diff_sites
         })
+        
+        # Extract sequence count if available
+        if 'input' in results and 'number of sequences' in results['input']:
+            processed['N'] = results['input']['number of sequences']
+        
+        # Extract branch length information if available
+        if 'branch attributes' in results and '0' in results['branch attributes']:
+            try:
+                branch_lengths = [float(branch.get('length', 0)) for branch in results['branch attributes']['0'].values()]
+                processed['T'] = sum(branch_lengths)
+            except (ValueError, TypeError, KeyError):
+                pass
         
         return processed
     
