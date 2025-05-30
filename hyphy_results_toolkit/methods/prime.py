@@ -33,11 +33,7 @@ class PrimeMethod(HyPhyMethod):
         Returns:
             Processed results with standardized keys
         """
-        processed = {
-            'prime_sites_tested': len(results.get('MLE', {}).get('content', {}).get('0', [])),
-            'prime_version': results.get('version', ''),
-            'prime_timestamp': results.get('timestamp', '')
-        }
+        processed = {}
         
         # Process sites under selection for each property
         for prop in self.PROPERTIES:
@@ -58,9 +54,7 @@ class PrimeMethod(HyPhyMethod):
                     else:
                         sites_altered += 1
             
-            prop_key = prop.lower().replace(' ', '_')
-            processed[f'prime_{prop_key}_conserved'] = sites_conserved
-            processed[f'prime_{prop_key}_altered'] = sites_altered
+            # We don't need to store property-specific counts in the summary
         
         return processed
     
@@ -79,49 +73,32 @@ class PrimeMethod(HyPhyMethod):
             # Get header indices
             header_indices = self.get_header_indices(results)
             
-            # Get index for p-value
+            # Get indices for the values we need
+            site_index = self.get_column_index(header_indices, 'Site', 0)
             pvalue_index = self.get_column_index(header_indices, 'p-value', 9)
             
-            site_index = 1
             for row in results['MLE']['content']['0']:
-                site_dict = {}
+                site = int(row[site_index]) if site_index >= 0 else 0
+                if site_index < 0:
+                    site += 1  # If site index not found, increment counter
                 
-                for prop in self.PROPERTIES:
-                    p_value = float(row[pvalue_index])
-                    
-                    site_dict.update({
-                        f'prime_{site_index}_pvalue': p_value,
-                        f'prime_{site_index}_conserved': p_value <= 0.05,
-                        f'prime_{site_index}_altered': p_value > 0.05
-                    })
+                p_value = float(row[pvalue_index])
                 
-                site_results[site_index-1] = site_dict
-                site_index += 1
+                site_results[site] = {
+                    # Only include the marker field
+                    'prime_marker': 'overall' if p_value <= 0.05 else '-'
+                }
         
         return site_results
     
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
-        fields = [
-            'prime_sites_tested',
-            'prime_version',
-            'prime_timestamp'
-        ]
-        
-        # Add fields for each property
-        for prop in PrimeMethod.PROPERTIES:
-            prop_key = prop.lower().replace(' ', '_')
-            fields.extend([
-                f'prime_{prop_key}_conserved',
-                f'prime_{prop_key}_altered'
-            ])
-        
-        return fields
+        return []  # No summary fields needed
     
     @staticmethod
     def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
         """Get list of site-specific fields produced by this method."""
-        # For PRIME, we'll return an empty list since we handle site fields differently
-        # The actual site fields will be determined at runtime based on the data
-        return []
+        return [
+            'prime_marker'
+        ]

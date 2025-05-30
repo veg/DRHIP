@@ -22,11 +22,7 @@ class FelMethod(HyPhyMethod):
         Returns:
             Processed results with standardized keys
         """
-        processed = {
-            'fel_sites_tested': len(results.get('MLE', {}).get('content', {}).get('0', [])),
-            'fel_version': results.get('version', ''),
-            'fel_timestamp': results.get('timestamp', '')
-        }
+        processed = {}
         
         # Process tested sites
         sites_under_selection = 0
@@ -53,8 +49,8 @@ class FelMethod(HyPhyMethod):
                         sites_under_negative_selection += 1
         
         processed.update({
-            'fel_sites_positive_selection': sites_under_selection,
-            'fel_sites_negative_selection': sites_under_negative_selection
+            'positive_sites': sites_under_selection,  
+            'negative_sites': sites_under_negative_selection,  
         })
         
         return processed
@@ -74,46 +70,46 @@ class FelMethod(HyPhyMethod):
             header_indices = self.get_header_indices(results)
             
             # Get indices for the values we need
-            site_index = self.get_column_index(header_indices, 'Site', 0)
             alpha_index = self.get_column_index(header_indices, 'alpha', 0)
             beta_index = self.get_column_index(header_indices, 'beta', 1)
             pvalue_index = self.get_column_index(header_indices, 'p-value', 4)
             
-            for row in results['MLE']['content']['0']:
-                site = int(row[site_index])
+            # Process each site (row index + 1 is the site number)
+            for site_idx, row in enumerate(results['MLE']['content']['0'], 1):
                 alpha = float(row[alpha_index])
                 beta = float(row[beta_index])
                 pvalue = float(row[pvalue_index])
                 
-                site_results[site] = {
-                    'fel_alpha': alpha,      # Synonymous rate
-                    'fel_beta': beta,        # Non-synonymous rate
-                    'fel_pvalue': pvalue,    # P-value
-                    'fel_selection': (
-                        'positive' if beta > alpha and pvalue <= 0.05
-                        else 'negative' if beta < alpha and pvalue <= 0.05
-                        else 'neutral'
-                    )
+                # Determine selection type
+                selection_type = (
+                    'positive' if beta > alpha and pvalue <= 0.05
+                    else 'negative' if beta < alpha and pvalue <= 0.05
+                    else 'neutral'
+                )
+                
+                site_results[site_idx] = {
+                    # Only include fields that are actually used
+                    'fel_selection': selection_type
                 }
+                
+                # Update site-specific fields for the desired output format
+                if selection_type == 'positive':
+                    # Mark this site as under positive selection
+                    site_results[site_idx]['intensified_positive_selection'] = True
+        
         return site_results
     
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
         return [
-            'fel_sites_tested',
-            'fel_sites_positive_selection',
-            'fel_sites_negative_selection',
-            'fel_version',
-            'fel_timestamp'
+            'positive_sites',
+            'negative_sites'
         ]
     
     @staticmethod
     def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
         """Get list of site-specific fields produced by this method."""
         return [
-            'fel_alpha',
-            'fel_beta',
-            'fel_pvalue',
             'fel_selection'
         ]

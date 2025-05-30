@@ -23,19 +23,17 @@ class RelaxMethod(HyPhyMethod):
             Processed results with standardized keys
         """
         test_results = results['test results']
-        return {
-            'relax_pvalue': test_results['p-value'],
-            'relax_k': test_results['relaxation or intensification parameter'],
-            'relax_lrt': test_results['LRT'],
-            'relax_k_significant': test_results['p-value'] <= 0.05
+        processed = {
+            'RELAX_overall_pval': test_results['p-value'],  # p-value field
+            'RELAX_K': test_results['relaxation or intensification parameter']  # K parameter
         }
+        
+        return processed
     
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
         return [
-            'relax_pvalue',
-            'relax_k',
-            'relax_lrt',
-            'relax_k_significant'
+            'RELAX_overall_pval',
+            'RELAX_K'
         ]

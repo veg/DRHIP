@@ -12,20 +12,29 @@ METHOD_PATHS = {
     'PRIME': 'PRIME'
 }
 
-# Default field names for output files
 SUMMARY_FIELDNAMES = [
     'gene',
-    'comparison_group',  # Previously 'clade'
+    'comparison_group',  # Keep using comparison_group internally
+    'N',      # Number of sequences
+    'T',      # Total branch length
+    'dN/dS',  # Overall dN/dS ratio
+    'sites',  # Number of sites
     'nt_conserved',
     'aa_conserved',
-    'total_branch_length',
-    'tree_length_ratio',
+    'diff_sites',
     # Method-specific fields will be added by each method
 ]
 
 SITES_FIELDNAMES = [
     'gene',
+    'comparison_group',  # Keep using comparison_group internally
     'site',
-    'comparison_group',  # Previously 'clade'
+    'consensus_site',
+    'composition',
+    'substitutions',
+    'majority_residue',
+    'diff_majority_residue',
+    'unique_aa',
+    'intensified_positive_selection',
     # Method-specific fields will be added by each method
 ]

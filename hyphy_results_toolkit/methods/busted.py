@@ -37,21 +37,20 @@ class BustedMethod(HyPhyMethod):
         """
         test_results = results['test results']
         processed = {
-            'busted_pvalue': test_results['p-value'],
-            'busted_lrt': test_results['LRT'],
-            'busted_evidence': test_results['p-value'] <= 0.05
+            'BUSTED_pval': test_results['p-value']  # Only keep the p-value field
         }
         
         # Get omega3 distribution
         omega3 = self.get_omega3(results)
-        processed['busted_omega3'] = omega3['omega']
-        # Use 'proportion' key for CAPHEINE format or 'weight' for original format
+        processed['BUSTED_omega3'] = omega3['omega']  # Renamed to match desired format
+        
+        # Get proportion of sites in omega3 category
         if 'weight' in omega3:
-            processed['busted_omega3_weight'] = omega3['weight']
+            processed['BUSTED_prop_sites_in_omega3'] = omega3['weight']  # Renamed to match desired format
         elif 'proportion' in omega3:
-            processed['busted_omega3_weight'] = omega3['proportion']
+            processed['BUSTED_prop_sites_in_omega3'] = omega3['proportion']  # Renamed to match desired format
         else:
-            processed['busted_omega3_weight'] = 0.0
+            processed['BUSTED_prop_sites_in_omega3'] = 0.0
         
         # Get branch lengths - handle different formats
         try:
@@ -70,32 +69,48 @@ class BustedMethod(HyPhyMethod):
                         if 'MG94xREV with separate rates for branch sets' in node_data:
                             total_branch_length += float(node_data['MG94xREV with separate rates for branch sets'])
             
-            processed['total_branch_length'] = total_branch_length
+            processed['T'] = total_branch_length  # Use T for total branch length
             
-            # Calculate tree length ratio if reference exists
-            if 'reference' in results.get('branch attributes', {}):
-                ref_branch_lengths = results['branch attributes']['reference']
-                ref_total_branch_length = 0
-                
-                # Check if the reference branches have a 'length' key
-                if all('length' in branch for branch in ref_branch_lengths.values()):
-                    ref_total_branch_length = sum(float(branch['length']) for branch in ref_branch_lengths.values())
-                # Otherwise, try to use MG94xREV values as branch lengths
+            # Count number of sequences from tree
+            try:
+                # Try to get number of sequences from the tree
+                if 'tested' in results and 'sequences' in results['tested']:
+                    processed['N'] = len(results['tested']['sequences'])
                 else:
-                    for node_name, node_data in ref_branch_lengths.items():
-                        if 'MG94xREV with separate rates for branch sets' in node_data:
-                            ref_total_branch_length += float(node_data['MG94xREV with separate rates for branch sets'])
-                
-                if ref_total_branch_length > 0:
-                    processed['tree_length_ratio'] = total_branch_length / ref_total_branch_length
-                else:
-                    processed['tree_length_ratio'] = 1.0
+                    # Estimate number of sequences from branch attributes
+                    # This is a rough estimate - half the number of branches in a bifurcating tree
+                    processed['N'] = len(branch_lengths) // 2
+            except Exception:
+                processed['N'] = 0
+            
+            # Get number of sites
+            if 'input' in results and 'sites' in results['input']:
+                processed['sites'] = results['input']['sites']
             else:
-                processed['tree_length_ratio'] = 1.0
-        except Exception:
-            # If anything goes wrong with branch length calculations, use default values
-            processed['total_branch_length'] = 0.0
-            processed['tree_length_ratio'] = 1.0
+                processed['sites'] = 0
+                
+            # Calculate dN/dS if possible
+            if 'fits' in results and 'Unconstrained model' in results['fits']:
+                model_fit = results['fits']['Unconstrained model']
+                if 'Rate Distributions' in model_fit and 'global' in model_fit['Rate Distributions']:
+                    rates = model_fit['Rate Distributions']['global']
+                    # Calculate weighted average of omega values
+                    omega_sum = 0.0
+                    for rate in rates:
+                        omega_sum += rate['omega'] * rate.get('weight', rate.get('proportion', 0.0))
+                    processed['dN/dS'] = omega_sum
+                else:
+                    processed['dN/dS'] = 0.0
+            else:
+                processed['dN/dS'] = 0.0
+            
+        except Exception as e:
+            # If anything goes wrong with calculations, use default values
+            print(f"Error processing BUSTED results: {e}")
+            processed['T'] = 0.0
+            processed['N'] = 0
+            processed['sites'] = 0
+            processed['dN/dS'] = 0.0
         
         return processed
     
@@ -103,11 +118,7 @@ class BustedMethod(HyPhyMethod):
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
         return [
-            'busted_pvalue',
-            'busted_lrt',
-            'busted_evidence',
-            'busted_omega3',
-            'busted_omega3_weight',
-            'total_branch_length',
-            'tree_length_ratio'
+            'BUSTED_pval',
+            'BUSTED_omega3',
+            'BUSTED_prop_sites_in_omega3'
         ]

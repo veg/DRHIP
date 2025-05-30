@@ -50,7 +50,7 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     
     outfile_summary = os.path.join(output_dir, f"{gene}_summary.csv")
     outfile_sites = os.path.join(output_dir, f"{gene}_sites.csv")
-
+    
     with write_lock:
         with open(outfile_summary, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=summary_fields)
@@ -85,7 +85,23 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
 
     for group in fh.comparison_groups:
         print(f"Processing {gene} in comparison group {group}...")
-        gene_summary_dict = {'gene': gene, 'comparison_group': group}
+        
+        # Initialize summary dictionary with default values
+        gene_summary_dict = {
+            'gene': gene, 
+            'comparison_group': group,
+            'N': 0,             # Number of sequences
+            'T': 0.0,           # Total branch length
+            'dN/dS': 0.0,       # Overall dN/dS ratio
+            'sites': 0,         # Number of sites
+            'nt_conserved': 0,  # Conserved nucleotide sites
+            'aa_conserved': 0,  # Conserved amino acid sites
+            'positive_sites': 0, # Sites under positive selection
+            'negative_sites': 0, # Sites under negative selection
+            'diff_sites': 0     # Differentially selected sites
+        }
+        
+        # Dictionary to track site-specific data
         site_recorder: Dict[int, Dict[str, Any]] = {}
 
         # Process each method's results
@@ -100,7 +116,19 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
                     site_data = method.process_site_data(method_results[method.name])
                     for site, data in site_data.items():
                         if site not in site_recorder:
-                            site_recorder[site] = {'gene': gene, 'site': site, 'comparison_group': group}
+                            # Initialize site data with default values
+                            site_recorder[site] = {
+                                'gene': gene, 
+                                'site': site, 
+                                'comparison_group': group,
+                                'consensus_site': site,  # Default to site number
+                                'composition': '',       # Will be populated if available
+                                'substitutions': '',     # Will be populated if available
+                                'majority_residue': '',  # Will be populated if available
+                                'diff_majority_residue': False,  # Default to False
+                                'unique_aa': '',        # Will be populated if available
+                                'intensified_positive_selection': False  # Default to False
+                            }
                         
                         # Track any new fields that weren't in the original site_fields list
                         for field in data.keys():
@@ -110,7 +138,7 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
 
         # Convert set to list for CSV writer
         complete_site_fields = list(all_site_fields)
-                        
+        
         # Write results to files
         with write_lock:
             with open(outfile_summary, 'a', newline='') as csvfile:

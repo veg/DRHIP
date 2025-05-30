@@ -57,56 +57,70 @@ class CfelMethod(HyPhyMethod):
             'subs_idx_map': self._subs_idx_map
         }
     
-    def process_site_data(self, site_data: Dict[str, Any], comparison_groups: List[str]) -> Dict[str, Any]:
+    def process_site_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process site-specific CFEL data.
         
         Args:
-            site_data: Site data from process_results
-            comparison_groups: List of comparison groups to process
+            results: Raw CFEL results dictionary
             
         Returns:
             Dictionary with site-specific metrics
         """
         site_results = {}
-        data_rows = site_data['data_rows']
-        beta_idx_map = site_data['beta_idx_map']
-        subs_idx_map = site_data['subs_idx_map']
+        
+        # Get the tag for each branch
+        tested = results['tested']['0']
+        by_type = {}
+        
+        # Group branch names by tag
+        for branch, tag in tested.items():
+            if tag not in by_type:
+                by_type[tag] = []
+            by_type[tag].append(branch)
+        
+        # Build column lookup maps
+        headers = results["MLE"]["headers"]
+        self._build_column_maps(headers, list(by_type.keys()))
+        
+        # Process site data
+        data_rows = results["MLE"]["content"]["0"]
+        p_value_idx = self._header_map.get("p-value", 5)  # Default to index 5 if not found
         
         for row in data_rows:
             site = int(row[0])  # First column is the site index
-            site_dict = {}
+            p_value = float(row[p_value_idx])
             
-            # Extract beta values and substitution counts for each comparison group
-            for group in comparison_groups:
-                site_dict[f'beta_{group}'] = float(row[beta_idx_map[group]])
-                site_dict[f'subs_{group}'] = float(row[subs_idx_map[group]])
+            # Create a formatted marker string for the cfel_marker field
+            if p_value <= 0.05:
+                marker = f"overall: {p_value:.3f}"
+                for i, group1 in enumerate(by_type.keys()):
+                    for group2 in list(by_type.keys())[i+1:]:
+                        # Add group comparison markers
+                        marker += f", {group1} vs {group2}: {p_value:.3f}"
+            else:
+                marker = "-"
             
-            site_results[site] = site_dict
+            site_results[site] = {
+                'cfel_marker': marker
+            }
         
         return site_results
     
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
-        return [
-            'nt_conserved',
-            'aa_conserved'
-        ]
+        return []  # No summary fields needed
     
     @staticmethod
-    def get_site_fields(comparison_groups: List[str]) -> List[str]:
+    def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
         """Get list of site-specific fields produced by this method.
         
         Args:
-            comparison_groups: List of comparison groups to generate fields for
+            comparison_groups: List of comparison groups (not used)
             
         Returns:
             List of field names
         """
-        fields = []
-        for group in comparison_groups:
-            fields.extend([
-                f'beta_{group}',
-                f'subs_{group}'
-            ])
-        return fields
+        return [
+            'cfel_marker'
+        ]

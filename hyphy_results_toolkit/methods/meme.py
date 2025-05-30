@@ -22,11 +22,7 @@ class MemeMethod(HyPhyMethod):
         Returns:
             Processed results with standardized keys
         """
-        processed = {
-            'meme_sites_tested': len(results.get('MLE', {}).get('content', {}).get('0', [])),
-            'meme_version': results.get('version', ''),
-            'meme_timestamp': results.get('timestamp', '')
-        }
+        processed = {}
         
         # Process sites under selection
         sites_under_selection = 0
@@ -42,7 +38,7 @@ class MemeMethod(HyPhyMethod):
                 if p_value <= 0.05:
                     sites_under_selection += 1
         
-        processed['meme_sites_selection'] = sites_under_selection
+        # We don't need to store this in the summary
         
         return processed
     
@@ -63,27 +59,14 @@ class MemeMethod(HyPhyMethod):
             
             # Get indices for the values we need (with defaults matching original hardcoded indices)
             site_index = self.get_column_index(header_indices, 'Site', 0)
-            alpha_index = self.get_column_index(header_indices, 'alpha', 2)
-            beta_neg_index = self.get_column_index(header_indices, 'beta-', 3)
-            beta_plus_index = self.get_column_index(header_indices, 'beta+', 4)
-            weight_index = self.get_column_index(header_indices, 'weight', 5)
             pvalue_index = self.get_column_index(header_indices, 'p-value', 7)
             
             for row in results['MLE']['content']['0']:
                 site = int(row[site_index])
-                alpha = float(row[alpha_index])
-                beta_neg = float(row[beta_neg_index])
-                beta_plus = float(row[beta_plus_index])
-                weight = float(row[weight_index])
                 pvalue = float(row[pvalue_index])
                 
                 site_results[site] = {
-                    'meme_alpha': alpha,     # Synonymous rate
-                    'meme_beta_neg': beta_neg,  # Non-synonymous rate for negative selection
-                    'meme_beta_plus': beta_plus, # Non-synonymous rate for positive selection
-                    'meme_weight': weight,    # Weight of positive selection class
-                    'meme_pvalue': pvalue,    # P-value for episodic selection
-                    'meme_selection': 'episodic' if pvalue <= 0.05 else 'none'
+                    'meme_marker': f'p={pvalue:.3f}' if pvalue <= 0.05 else '-'
                 }
         
         return site_results
@@ -91,21 +74,11 @@ class MemeMethod(HyPhyMethod):
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
-        return [
-            'meme_sites_tested',
-            'meme_sites_selection',
-            'meme_version',
-            'meme_timestamp'
-        ]
+        return []  # No summary fields needed
     
     @staticmethod
     def get_site_fields(comparison_groups: List[str] = None) -> List[str]:
         """Get list of site-specific fields produced by this method."""
         return [
-            'meme_alpha',
-            'meme_beta_neg',
-            'meme_beta_plus',
-            'meme_weight',
-            'meme_pvalue',
-            'meme_selection'
+            'meme_marker'
         ]

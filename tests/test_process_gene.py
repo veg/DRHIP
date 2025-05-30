@@ -91,8 +91,7 @@ def test_process_gene_sites_content(results_dir):
             
             # Check data types
             for field in ['fel_alpha', 'fel_beta', 'fel_pvalue']:
-                if first_site[field] and first_site[field].strip():
-                    assert isinstance(float(first_site[field]), float)
+                assert isinstance(float(first_site[field]), float)
 
 def test_process_gene_thread_safety(results_dir):
     """Test that process_gene is thread-safe when writing output."""
