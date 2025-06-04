@@ -153,8 +153,34 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
                     field_providers[field] = []
                 field_providers[field].append(method.name)
             
-            # Update the summary dictionary
-            gene_summary_dict.update(summary_data)
+            # Intelligently merge summary data
+            for field, value in summary_data.items():
+                if field in gene_summary_dict:
+                    # Field already exists, need to merge
+                    existing_value = gene_summary_dict[field]
+                    
+                    # Case 1: Values are the same - no action needed
+                    if existing_value == value:
+                        continue
+                    
+                    # Case 2: One value is 'NA' - use the non-NA value
+                    elif existing_value == 'NA' and value != 'NA':
+                        gene_summary_dict[field] = value
+                    elif value == 'NA' and existing_value != 'NA':
+                        # Keep existing value
+                        continue
+                    
+                    # Case 3: Both values differ and neither is 'NA' - print error but keep latest
+                    else:
+                        providers = field_providers.get(field, [])
+                        print(f"WARNING: Conflicting values for field '{field}' in gene {gene}:")
+                        print(f"  Value 1: {existing_value} (from {', '.join(providers[:-1]) if len(providers) > 1 else providers[0] if providers else 'unknown'})")
+                        print(f"  Value 2: {value} (from {method.name})")
+                        print(f"  Using value from {method.name}")
+                        gene_summary_dict[field] = value
+                else:
+                    # Field doesn't exist yet, simply add it
+                    gene_summary_dict[field] = value
 
             # Process method-specific site data if available
             if hasattr(method, 'process_site_data'):
@@ -177,8 +203,34 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
                         if method.name not in site_field_providers[field]:
                             site_field_providers[field].append(method.name)
                     
-                    # Update the site data
-                    site_recorder[site].update(data)
+                    # Intelligently merge site data
+                    for field, value in data.items():
+                        if field in site_recorder[site]:
+                            # Field already exists, need to merge
+                            existing_value = site_recorder[site][field]
+                            
+                            # Case 1: Values are the same - no action needed
+                            if existing_value == value:
+                                continue
+                            
+                            # Case 2: One value is 'NA' - use the non-NA value
+                            elif existing_value == 'NA' and value != 'NA':
+                                site_recorder[site][field] = value
+                            elif value == 'NA' and existing_value != 'NA':
+                                # Keep existing value
+                                continue
+                            
+                            # Case 3: Both values differ and neither is 'NA' - print error but keep latest
+                            else:
+                                providers = site_field_providers.get(field, [])
+                                print(f"WARNING: Conflicting values for site field '{field}' at site {site} in gene {gene}:")
+                                print(f"  Value 1: {existing_value} (from {', '.join(providers[:-1]) if len(providers) > 1 else providers[0] if providers else 'unknown'})")
+                                print(f"  Value 2: {value} (from {method.name})")
+                                print(f"  Using value from {method.name}")
+                                site_recorder[site][field] = value
+                        else:
+                            # Field doesn't exist yet, simply add it
+                            site_recorder[site][field] = value
 
     # Validate that all expected summary fields are present
     if not expected_summary_fields.issubset(output_summary_fields):
@@ -189,17 +241,6 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     if not expected_site_fields.issubset(output_site_fields):
         missing_site_fields = expected_site_fields - output_site_fields
         print(f"Warning: Missing site fields for {gene}: {missing_site_fields}")
-        
-    # Check for duplicate fields provided by different methods
-    for field, providers in field_providers.items():
-        if len(providers) > 1:
-            print(f"Warning: Summary field '{field}' is provided by multiple methods: {', '.join(providers)}")
-            print(f"  Using value from last method: {providers[-1]}")
-            
-    for field, providers in site_field_providers.items():
-        if len(providers) > 1:
-            print(f"Warning: Site field '{field}' is provided by multiple methods: {', '.join(providers)}")
-            print(f"  Values may be overwritten by later methods")
 
     # Check if files exist and warn about overwriting
     if os.path.exists(outfile_summary):
