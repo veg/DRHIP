@@ -8,13 +8,14 @@ Authors:
 """
 
 import os
-import threading
 import csv
-from typing import Dict, Any, Optional, List, Set
+import threading
+from typing import Dict, Any, Optional
 
-from ..utils import file_handlers as fh
-from ..methods import HyPhyMethodRegistry
 from ..config import SUMMARY_FIELDNAMES, SITES_FIELDNAMES, DEFAULT_COMPARISON_GROUPS
+from ..utils import file_handlers as fh
+from ..utils.result_helpers import merge_method_data, ensure_ordered_fields, detect_comparison_groups
+from ..methods import HyPhyMethodRegistry
 
 # Define a lock for synchronizing writes to the output files
 write_lock = threading.Lock()
@@ -74,53 +75,12 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     if missing_methods:
         print(f"Processing {gene} with {len(method_results)} methods. Missing: {', '.join(missing_methods)}")        
     
-    # Detect and print comparison groups from CFEL and RELAX results
-    cfel_groups: List[str] = []
-    relax_groups: List[str] = []
-    
-    # Detect comparison groups from CFEL results
-    if 'CFEL' in method_results and method_results['CFEL'].get('tested', {}).get('0'):
-        cfel_tested = method_results['CFEL']['tested']['0']
-        detected_groups: Set[str] = set()
-        
-        # Extract unique group tags from tested branches
-        for branch, tag in cfel_tested.items():
-            detected_groups.add(tag)
-        
-        if detected_groups:
-            cfel_groups = list(detected_groups)
-            print(f"Detected comparison groups from CFEL results: {', '.join(cfel_groups)}")
-    
-    # Detect comparison groups from RELAX results
-    if 'RELAX' in method_results and method_results['RELAX'].get('test results', {}).get('relaxation or intensification parameter'):
-        relax_k = method_results['RELAX']['test results']['relaxation or intensification parameter']
-        if isinstance(relax_k, dict):
-            detected_groups = [k for k in relax_k.keys() if k != 'overall']
-            if detected_groups:
-                relax_groups = detected_groups
-                print(f"Detected comparison groups from RELAX results: {', '.join(relax_groups)}")
-    
-    # Validate consistency between CFEL and RELAX groups
-    if cfel_groups and relax_groups:
-        # Check if the groups are the same (ignoring order)
-        if set(cfel_groups) == set(relax_groups):
-            print("Comparison groups are consistent between CFEL and RELAX methods")
-            comparison_groups = cfel_groups  # Use CFEL groups (arbitrary choice)
-        else:
-            # Raise an error when comparison groups don't match
-            error_msg = "ERROR: Inconsistent comparison groups between CFEL and RELAX methods\n"
-            error_msg += f"  CFEL groups: {', '.join(cfel_groups)}\n"
-            error_msg += f"  RELAX groups: {', '.join(relax_groups)}"
-            print(error_msg)
-            raise ValueError(error_msg)
-    elif cfel_groups:
-        comparison_groups = cfel_groups
-    elif relax_groups:
-        comparison_groups = relax_groups
-    else:
-        # If no groups were detected from results, use the defaults
-        comparison_groups = DEFAULT_COMPARISON_GROUPS.copy()
-        print(f"Using default comparison groups: {', '.join(DEFAULT_COMPARISON_GROUPS)}")
+    # Detect comparison groups from available methods
+    comparison_groups, groups_by_method = detect_comparison_groups(
+        method_results, 
+        default_groups=DEFAULT_COMPARISON_GROUPS,
+        methods_to_check=['CFEL', 'RELAX']  # Can be extended with other methods in the future
+    )
         
     # Make detected comparison groups available to methods
     for method in methods:
@@ -153,34 +113,14 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
                     field_providers[field] = []
                 field_providers[field].append(method.name)
             
-            # Intelligently merge summary data
-            for field, value in summary_data.items():
-                if field in gene_summary_dict:
-                    # Field already exists, need to merge
-                    existing_value = gene_summary_dict[field]
-                    
-                    # Case 1: Values are the same - no action needed
-                    if existing_value == value:
-                        continue
-                    
-                    # Case 2: One value is 'NA' - use the non-NA value
-                    elif existing_value == 'NA' and value != 'NA':
-                        gene_summary_dict[field] = value
-                    elif value == 'NA' and existing_value != 'NA':
-                        # Keep existing value
-                        continue
-                    
-                    # Case 3: Both values differ and neither is 'NA' - print error but keep latest
-                    else:
-                        providers = field_providers.get(field, [])
-                        print(f"WARNING: Conflicting values for field '{field}' in gene {gene}:")
-                        print(f"  Value 1: {existing_value} (from {', '.join(providers[:-1]) if len(providers) > 1 else providers[0] if providers else 'unknown'})")
-                        print(f"  Value 2: {value} (from {method.name})")
-                        print(f"  Using value from {method.name}")
-                        gene_summary_dict[field] = value
-                else:
-                    # Field doesn't exist yet, simply add it
-                    gene_summary_dict[field] = value
+            # Use helper to merge summary data
+            merge_method_data(
+                target_dict=gene_summary_dict,
+                method_data=summary_data,
+                method_name=method.name,
+                providers=field_providers,
+                context={'gene': gene}
+            )
 
             # Process method-specific site data if available
             if hasattr(method, 'process_site_data'):
@@ -196,41 +136,14 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
                     # Track fields that will be in the output
                     output_site_fields.update(data.keys())
                     
-                    # Track which methods provide which site fields
-                    for field in data.keys():
-                        if field not in site_field_providers:
-                            site_field_providers[field] = []
-                        if method.name not in site_field_providers[field]:
-                            site_field_providers[field].append(method.name)
-                    
-                    # Intelligently merge site data
-                    for field, value in data.items():
-                        if field in site_recorder[site]:
-                            # Field already exists, need to merge
-                            existing_value = site_recorder[site][field]
-                            
-                            # Case 1: Values are the same - no action needed
-                            if existing_value == value:
-                                continue
-                            
-                            # Case 2: One value is 'NA' - use the non-NA value
-                            elif existing_value == 'NA' and value != 'NA':
-                                site_recorder[site][field] = value
-                            elif value == 'NA' and existing_value != 'NA':
-                                # Keep existing value
-                                continue
-                            
-                            # Case 3: Both values differ and neither is 'NA' - print error but keep latest
-                            else:
-                                providers = site_field_providers.get(field, [])
-                                print(f"WARNING: Conflicting values for site field '{field}' at site {site} in gene {gene}:")
-                                print(f"  Value 1: {existing_value} (from {', '.join(providers[:-1]) if len(providers) > 1 else providers[0] if providers else 'unknown'})")
-                                print(f"  Value 2: {value} (from {method.name})")
-                                print(f"  Using value from {method.name}")
-                                site_recorder[site][field] = value
-                        else:
-                            # Field doesn't exist yet, simply add it
-                            site_recorder[site][field] = value
+                    # Use helper to merge site data
+                    merge_method_data(
+                        target_dict=site_recorder[site],
+                        method_data=data,
+                        method_name=method.name,
+                        providers=site_field_providers,
+                        context={'gene': gene, 'site': site}
+                    )
 
     # Validate that all expected summary fields are present
     if not expected_summary_fields.issubset(output_summary_fields):
@@ -248,17 +161,9 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     if os.path.exists(outfile_sites):
         print(f"Warning: Overwriting existing file {outfile_sites}")
     
-    # Ensure 'gene' is the first column in summary output
-    ordered_summary_fields = ['gene']
-    for field in output_summary_fields:
-        if field != 'gene':  # Skip 'gene' as we already added it
-            ordered_summary_fields.append(field)
-    
-    # Ensure 'gene' and 'site' are the first two columns in site output
-    ordered_site_fields = ['gene', 'site']
-    for field in output_site_fields:
-        if field not in ['gene', 'site']:  # Skip fields we already added
-            ordered_site_fields.append(field)
+    # Use helper to ensure fields are ordered properly
+    ordered_summary_fields = ensure_ordered_fields(output_summary_fields, ['gene'])
+    ordered_site_fields = ensure_ordered_fields(output_site_fields, ['gene', 'site'])
     
     # Write results to files
     with write_lock:
