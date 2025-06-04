@@ -122,3 +122,74 @@ class HyPhyMethod(ABC):
             Column index
         """
         return header_indices.get(column_name, default_index)
+
+    # TODO: some of this looks like it might have been ai hallucinations lol
+    # but it also looks to have produced the right values so far
+    # i suspect maybe its needlessly complicated is all, for checking a bit of nonsense
+    def extract_common_fields(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract common fields from HyPhy results.
+        
+        This method extracts fields that are common across multiple HyPhy methods:
+        - N: Number of sequences
+        - T: Total branch length
+        - sites: Number of sites
+        
+        Args:
+            results: Raw results dictionary from JSON file
+            
+        Returns:
+            Dictionary with extracted common fields
+        """
+        common_fields = {}
+        
+        # Extract number of sites
+        if 'input' in results:
+            # Try different keys that might contain the number of sites
+            if 'number of sites' in results['input']:
+                common_fields['sites'] = results['input']['number of sites']
+            elif 'sites' in results['input']:
+                common_fields['sites'] = results['input']['sites']
+        
+        # If sites not found in input, try to get from MLE content length
+        if 'sites' not in common_fields and self.has_mle_content(results):
+            common_fields['sites'] = len(results['MLE']['content']['0'])
+        
+        # Extract number of sequences
+        if 'input' in results:
+            # Try different keys that might contain the number of sequences
+            if 'number of sequences' in results['input']:
+                common_fields['N'] = results['input']['number of sequences']
+            elif 'sequences' in results['input']:
+                common_fields['N'] = len(results['input']['sequences'])
+        
+        # If N not found in input, try to get from tested sequences
+        if 'N' not in common_fields and 'tested' in results and 'sequences' in results['tested']:
+            common_fields['N'] = len(results['tested']['sequences'])
+        
+        # Extract total branch length
+        if 'branch attributes' in results and '0' in results['branch attributes']:
+            try:
+                branch_lengths = []
+                branch_data = results['branch attributes']['0']
+                
+                # Handle different formats of branch length data
+                for branch in branch_data.values():
+                    # Format 1: Direct 'length' key
+                    if isinstance(branch, dict) and 'length' in branch:
+                        branch_lengths.append(float(branch['length']))
+                    # Format 2: MG94xREV key
+                    elif isinstance(branch, dict) and 'MG94xREV with separate rates for branch sets' in branch:
+                        branch_lengths.append(float(branch['MG94xREV with separate rates for branch sets']))
+                    # Format 3: Direct float value
+                    elif isinstance(branch, (int, float, str)):
+                        try:
+                            branch_lengths.append(float(branch))
+                        except (ValueError, TypeError):
+                            pass
+                
+                if branch_lengths:
+                    common_fields['T'] = sum(branch_lengths)
+            except (ValueError, TypeError, KeyError):
+                pass
+        
+        return common_fields
