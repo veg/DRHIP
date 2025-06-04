@@ -123,9 +123,159 @@ class HyPhyMethod(ABC):
         """
         return header_indices.get(column_name, default_index)
 
-    # TODO: some of this looks like it might have been ai hallucinations lol
+    # TODO: some of what is below here looks like it might have been ai hallucinations lol
     # but it also looks to have produced the right values so far
     # i suspect maybe its needlessly complicated is all, for checking a bit of nonsense
+    def calculate_rate_distribution_stats(self, results: Dict[str, Any],
+                                     model_name: str = 'Unconstrained model',
+                                     distribution_name: str = 'global') -> Dict[str, float]:
+        """Calculate statistics from rate distributions.
+        
+        This helper extracts rate distributions and calculates statistics like dN/dS.
+        
+        Args:
+            results: Raw results dictionary from JSON file
+            model_name: Name of the model to extract rates from (default: 'Unconstrained model')
+            distribution_name: Name of the distribution to use (default: 'global')
+            
+        Returns:
+            Dictionary with calculated statistics (e.g., {'dN/dS': 0.5})
+        """
+        stats = {'dN/dS': 0.0}
+        
+        try:
+            if 'fits' in results and model_name in results['fits']:
+                model_fit = results['fits'][model_name]
+                if 'Rate Distributions' in model_fit and distribution_name in model_fit['Rate Distributions']:
+                    rates = model_fit['Rate Distributions'][distribution_name]
+                    
+                    # Calculate weighted average of omega values
+                    omega_sum = 0.0
+                    for rate in rates:
+                        # Handle different formats (weight or proportion)
+                        weight = rate.get('weight', rate.get('proportion', 0.0))
+                        omega_sum += rate['omega'] * weight
+                    
+                    stats['dN/dS'] = omega_sum
+        except Exception as e:
+            print(f"Error calculating rate distribution stats: {e}")
+            # Keep default values on error
+        
+        return stats
+        
+    def calculate_selection_counts(self, results: Dict[str, Any], 
+                                alpha_col: str = 'alpha', 
+                                beta_col: str = 'beta', 
+                                pvalue_col: str = 'p-value',
+                                significance: float = 0.05) -> Dict[str, int]:
+        """Calculate selection statistics from MLE data.
+        
+        This helper calculates common selection statistics:
+        - positive_sites: Number of sites under positive selection (beta > alpha, p <= significance)
+        - negative_sites: Number of sites under negative selection (beta < alpha, p <= significance)
+        - diff_sites: Total number of sites with significant differences (p <= significance)
+        
+        Args:
+            results: Raw results dictionary from JSON file
+            alpha_col: Name of the column containing alpha (synonymous rate) values
+            beta_col: Name of the column containing beta (non-synonymous rate) values
+            pvalue_col: Name of the column containing p-values
+            significance: P-value threshold for significance (default: 0.05)
+            
+        Returns:
+            Dictionary with selection statistics
+        """
+        stats = {
+            'positive_sites': 0,
+            'negative_sites': 0,
+            'diff_sites': 0
+        }
+        
+        # Check if required data is available
+        if not self.has_mle_content(results) or not self.has_mle_headers(results):
+            return stats
+            
+        # Get header indices
+        header_indices = self.get_header_indices(results)
+        
+        # Get indices for the values we need
+        alpha_index = self.get_column_index(header_indices, alpha_col, -1)
+        beta_index = self.get_column_index(header_indices, beta_col, -1)
+        pvalue_index = self.get_column_index(header_indices, pvalue_col, -1)
+        
+        # Check if we have valid column indices
+        if alpha_index < 0 or beta_index < 0 or pvalue_index < 0:
+            return stats
+        
+        # Process each site
+        for row in results['MLE']['content']['0']:
+            try:
+                # Extract values
+                alpha = float(row[alpha_index])    # Alpha (synonymous rate)
+                beta = float(row[beta_index])      # Beta (non-synonymous rate)
+                p_value = float(row[pvalue_index]) # P-value
+                
+                # Count sites based on selection criteria
+                if p_value <= significance:
+                    stats['diff_sites'] += 1
+                    if beta > alpha:
+                        stats['positive_sites'] += 1
+                    elif beta < alpha:
+                        stats['negative_sites'] += 1
+            except (ValueError, IndexError, TypeError):
+                # Skip this site if there's an error
+                continue
+        
+        return stats
+
+    def process_site_mle_data(self, results: Dict[str, Any], column_names: Dict[str, str], 
+                           process_row_fn) -> Dict[int, Dict[str, Any]]:
+        """Process site-specific data from MLE content.
+        
+        This helper handles common site data processing patterns:
+        - Checking for valid MLE content and headers
+        - Extracting column indices
+        - Processing each site with error handling
+        - Returning a dictionary of site-specific results
+        
+        Args:
+            results: Raw results dictionary from JSON file
+            column_names: Dictionary mapping logical column names to actual column names in the results
+                         e.g. {'alpha': 'alpha', 'beta': 'beta', 'p-value': 'p-value'}
+            process_row_fn: Function that takes (site_idx, row, column_indices) and returns site data dict
+            
+        Returns:
+            Dictionary mapping site indices to site-specific data
+        """
+        site_results = {}
+        
+        # Check if required data is available
+        if not self.has_mle_content(results) or not self.has_mle_headers(results):
+            return site_results
+            
+        # Get header indices
+        header_indices = self.get_header_indices(results)
+        
+        # Get indices for the values we need
+        column_indices = {}
+        for logical_name, actual_name in column_names.items():
+            # Default to -1 to indicate column not found
+            column_indices[logical_name] = self.get_column_index(header_indices, actual_name, -1)
+        
+        # Process each site (row index + 1 is the site number)
+        for site_idx, row in enumerate(results['MLE']['content']['0'], 1):
+            try:
+                # Process the row using the provided function
+                site_data = process_row_fn(site_idx, row, column_indices)
+                if site_data:
+                    site_results[site_idx] = site_data
+            except Exception as e:
+                print(f"Error processing site {site_idx}: {e}")
+                # Skip this site on error
+                continue
+        
+        return site_results
+    
     def extract_common_fields(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Extract common fields from HyPhy results.
         

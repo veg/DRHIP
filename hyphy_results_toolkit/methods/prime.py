@@ -67,15 +67,12 @@ class PrimeMethod(HyPhyMethod):
         Returns:
             Dictionary with site-specific metrics
         """
-        site_results = {}
+        # First, extract property tags and p-value indices
+        prime_tags = []
+        p_indices = []
         
-        if self.has_mle_content(results) and self.has_mle_headers(results):
-            # Get the headers directly from the results
+        if self.has_mle_headers(results):
             headers = results['MLE']['headers']
-            
-            # Extract property tags from headers, similar to End2End-DENV
-            prime_tags = []
-            p_indices = []
             
             for i, (short_label, description) in enumerate(headers):
                 if short_label == 'p-value':
@@ -89,45 +86,47 @@ class PrimeMethod(HyPhyMethod):
             
             # Sort tags by their index
             prime_tags = [tag for _, tag in sorted(prime_tags, key=lambda x: x[0])]
-            
-            # Process each site
-            for row_idx, row in enumerate(results['MLE']['content']['0']):
-                site = row_idx  # Use row index as site number
-                
-                # Get p-values for all properties, with error handling
-                pvals = []
-                has_valid_data = True
-                
-                for idx in p_indices:
-                    try:
-                        if idx < len(row):
-                            pvals.append(float(row[idx]))
-                        else:
-                            has_valid_data = False  # Mark as invalid if index out of range
-                            break
-                    except (ValueError, TypeError):
-                        has_valid_data = False  # Mark as invalid if conversion fails
-                        break
-                
-                # Always create an entry for each site
-                if not has_valid_data or not pvals or not prime_tags:
-                    # For missing or malformed data
-                    site_results[site] = {
-                        'prime_marker': 'NA'
-                    }
-                elif min(pvals) <= 0.05:
-                    # For sites with significant properties
-                    significant_tags = [prime_tags[i] for i, pval in enumerate(pvals) if pval <= 0.05]
-                    site_results[site] = {
-                        'prime_marker': ','.join(significant_tags)
-                    }
-                else:
-                    # For non-significant sites, use dash as in original End2End pipeline
-                    site_results[site] = {
-                        'prime_marker': '-'
-                    }
         
-        return site_results
+        # Define column names mapping - we'll handle p-value columns separately
+        column_names = {}
+        
+        # Define a function to process each row
+        def process_row(site_idx, row, column_indices):
+            # Get p-values for all properties, with error handling
+            pvals = []
+            has_valid_data = True
+            
+            for idx in p_indices:
+                try:
+                    if idx < len(row):
+                        pvals.append(float(row[idx]))
+                    else:
+                        has_valid_data = False  # Mark as invalid if index out of range
+                        break
+                except (ValueError, TypeError):
+                    has_valid_data = False  # Mark as invalid if conversion fails
+                    break
+            
+            # Determine the marker value
+            if not has_valid_data or not pvals or not prime_tags:
+                # For missing or malformed data
+                return {
+                    'prime_marker': 'NA'
+                }
+            elif min(pvals) <= 0.05:
+                # For sites with significant properties
+                significant_tags = [prime_tags[i] for i, pval in enumerate(pvals) if pval <= 0.05]
+                return {
+                    'prime_marker': ','.join(significant_tags)
+                }
+            else:
+                # For non-significant sites, use dash as in original End2End pipeline
+                return {
+                    'prime_marker': '-'
+                }
+        
+        # Use the helper to process site data
+        return self.process_site_mle_data(results, column_names, process_row)
     
     @staticmethod
     def get_summary_fields() -> List[str]:

@@ -51,52 +51,42 @@ class MemeMethod(HyPhyMethod):
         Returns:
             Dictionary with site-specific metrics
         """
-        site_results = {}
+        # Define column names mapping
+        column_names = {
+            'site': 'Site',
+            'p-value': 'p-value'
+        }
         
-        # Check if required data is available
-        if not self.has_mle_content(results) or not self.has_mle_headers(results):
-            # If critical data is missing, return empty results
-            return site_results
+        # Define a function to process each row
+        def process_row(site_idx, row, column_indices):
+            pvalue_index = column_indices['p-value']
             
-        # Get header indices
-        header_indices = self.get_header_indices(results)
-        
-        # Get indices for the values we need (with defaults matching original hardcoded indices)
-        site_index = self.get_column_index(header_indices, 'Site', 0)
-        pvalue_index = self.get_column_index(header_indices, 'p-value', 7)
-        
-        for row in results['MLE']['content']['0']:
-            # Get site index with error handling
+            # Check if we have valid indices and data
+            if pvalue_index < 0 or pvalue_index >= len(row):
+                return {
+                    'meme_marker': 'NA'  # Use NA for missing data
+                }
+            
             try:
-                site = int(row[site_index]) if row and len(row) > site_index else 0
-            except (ValueError, TypeError, IndexError):
-                continue  # Skip this row if we can't get a valid site index
-            
-            # Check if we have valid data for this site
-            has_valid_data = True
-            
-            # Ensure we have a valid p-value
-            try:
-                if pvalue_index < len(row):
-                    pvalue = float(row[pvalue_index])
+                pvalue = float(row[pvalue_index])
+                
+                # Set the marker based on significance
+                if pvalue <= 0.05:
+                    marker = f'{pvalue:.3f}'  # Format p-value for significant sites
                 else:
-                    has_valid_data = False
+                    marker = '-'  # Use dash for non-significant sites
+                
+                return {
+                    'meme_marker': marker
+                }
             except (ValueError, TypeError):
-                has_valid_data = False
-            
-            # Set the marker based on data validity and significance
-            if not has_valid_data:
-                marker = "NA"  # Use NA for missing or malformed data
-            elif pvalue <= 0.05:
-                marker = f'{pvalue:.3f}'  # Format p-value for significant sites
-            else:
-                marker = '-'  # Use dash for non-significant sites
-            
-            site_results[site] = {
-                'meme_marker': marker
-            }
+                # Return NA for malformed data
+                return {
+                    'meme_marker': 'NA'
+                }
         
-        return site_results
+        # Use the helper to process site data
+        return self.process_site_mle_data(results, column_names, process_row)
     
     @staticmethod
     def get_summary_fields() -> List[str]:

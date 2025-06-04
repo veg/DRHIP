@@ -2,7 +2,7 @@
 CFEL (Contrast-FEL) method implementation.
 """
 
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List
 
 from .base import HyPhyMethod
 
@@ -17,16 +17,22 @@ class CfelMethod(HyPhyMethod):
         self._beta_idx_map = {}
         self._subs_idx_map = {}
     
-    def _build_column_maps(self, headers: List[Tuple[str, str]], comparison_groups: List[str]) -> None:
-        """Build column lookup maps for the CFEL data.
+    def _build_column_maps(self, results: Dict[str, Any], comparison_groups: List[str]) -> None:
+        """Build column lookup maps for the CFEL data using base helper functions.
         
         Args:
-            headers: List of (short_label, description) tuples
+            results: Raw results dictionary
             comparison_groups: List of comparison group names
         """
-        self._header_map = {short_label: i for i, (short_label, _) in enumerate(headers)}
-        self._beta_idx_map = {g: self._header_map.get(f"beta ({g})", -1) for g in comparison_groups}
-        self._subs_idx_map = {g: self._header_map.get(f"subs ({g})", -1) for g in comparison_groups}
+        # Use base helper to get header indices
+        header_indices = self.get_header_indices(results)
+        
+        # Store the header map for use in other methods
+        self._header_map = header_indices
+        
+        # Build maps for beta and substitution columns
+        self._beta_idx_map = {g: self.get_column_index(header_indices, f"beta ({g})", -1) for g in comparison_groups}
+        self._subs_idx_map = {g: self.get_column_index(header_indices, f"subs ({g})", -1) for g in comparison_groups}
     
     def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process CFEL results.
@@ -75,17 +81,15 @@ class CfelMethod(HyPhyMethod):
         try:
             if "MLE" in results and "content" in results["MLE"] and "0" in results["MLE"]["content"]:
                 data_rows = results["MLE"]["content"]["0"]
-                processed['sites'] = len(data_rows)
                 
                 # Count conserved sites (both nt and aa)
                 nt_conserved = 0
                 aa_conserved = 0
                 
                 # Build column lookup maps if not already built
-                if not self._header_map:
-                    headers = results["MLE"]["headers"]
+                if not self._beta_idx_map:
                     comparison_groups = list(by_type.keys())
-                    self._build_column_maps(headers, comparison_groups)
+                    self._build_column_maps(results, comparison_groups)
                 
                 for row in data_rows:
                     # Get beta values for all groups
@@ -142,7 +146,7 @@ class CfelMethod(HyPhyMethod):
         return processed
     
     def process_site_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """Process site-specific CFEL data.
+        """Process site-specific CFEL data using base helper functions.
         
         Args:
             results: Raw CFEL results dictionary
@@ -150,12 +154,10 @@ class CfelMethod(HyPhyMethod):
         Returns:
             Dictionary with site-specific metrics
         """
-        site_results = {}
-        
-        # Check if required data is available
-        if not results.get('tested', {}).get('0') or not results.get('MLE', {}).get('headers') or not results.get('MLE', {}).get('content', {}).get('0'):
+        # Check if required data is available using base helper functions
+        if not self.has_mle_content(results) or not self.has_mle_headers(results) or not results.get('tested', {}).get('0'):
             # If critical data is missing, return empty results
-            return site_results
+            return {}
         
         # Get the tag for each branch
         tested = results['tested']['0']
@@ -175,23 +177,19 @@ class CfelMethod(HyPhyMethod):
             if tag in by_type:
                 by_type[tag].append(branch)
         
-        # Build column lookup maps
-        headers = results["MLE"]["headers"]
-        # Always use the comparison groups we determined
-        self._build_column_maps(headers, list(by_type.keys()))
+        # Build column lookup maps using base helper functions
+        self._build_column_maps(results, list(by_type.keys()))
         
-        # Get indices for p-values (overall and pairwise)
-        p_overall_idx = self._header_map.get("P-value (overall)", None)
-        if p_overall_idx is None:
-            p_overall_idx = self._header_map.get("p-value", 5)  # Default to index 5 if not found
+        # Define column name mapping for process_site_mle_data
+        column_names = {
+            'site': 'Site',
+            'p-value': 'P-value (overall)'
+        }
         
-        # Build a lookup for pairwise p-value columns
+        # Get pairwise p-value column indices
         pairwise_pval_idx = {}
-        # Use comparison groups set from process_gene.py
-        comparison_groups = self._comparison_groups
-        
-        for i, group1 in enumerate(comparison_groups):
-            for group2 in comparison_groups[i+1:]:
+        for i, group1 in enumerate(self._comparison_groups):
+            for group2 in self._comparison_groups[i+1:]:
                 # Two ways the column might appear
                 option_1 = f"P-value for {group1} vs {group2}"
                 option_2 = f"P-value for {group2} vs {group1}"
@@ -201,18 +199,15 @@ class CfelMethod(HyPhyMethod):
                 elif option_2 in self._header_map:
                     pairwise_pval_idx[(group1, group2)] = self._header_map[option_2]
         
-        # Process site data
-        data_rows = results["MLE"]["content"]["0"]
-        
-        for row in data_rows:
-            # Get site index with error handling
-            try:
-                site = int(row[0]) if row and len(row) > 0 else 0  # First column is the site index
-            except (ValueError, TypeError, IndexError):
-                continue  # Skip this row if we can't get a valid site index
-            
-            # Initialize site data
+        # Define a function to process each row
+        def process_row(site_idx, row, column_indices):
             site_data = {}
+            
+            # Get p-value index, with fallback
+            p_overall_idx = column_indices.get('p-value', -1)
+            if p_overall_idx == -1:
+                # Try alternate name
+                p_overall_idx = self._header_map.get("p-value", 5)  # Default to index 5 if not found
             
             # Check overall significance
             try:
@@ -252,54 +247,45 @@ class CfelMethod(HyPhyMethod):
             # Get beta values for each group
             for group, idx in self._beta_idx_map.items():
                 try:
-                    site_data[f"beta_{group}"] = float(row[idx])
+                    site_data[f"beta_{group}"] = float(row[idx]) if idx >= 0 else None
                 except (ValueError, TypeError, IndexError):
                     site_data[f"beta_{group}"] = None
             
             # Get substitution counts for each group
             for group, idx in self._subs_idx_map.items():
                 try:
-                    site_data[f"subs_{group}"] = float(row[idx])
+                    site_data[f"subs_{group}"] = float(row[idx]) if idx >= 0 else None
                 except (ValueError, TypeError, IndexError):
                     site_data[f"subs_{group}"] = None
             
             # Check if site is conserved (nucleotide or amino acid)
             try:
-                # For generic comparison groups, we need to be more flexible
-                # We'll check if the site is conserved across all comparison groups
-                
                 # Get beta values for all groups
-                beta_values = [row[idx] for idx in self._beta_idx_map.values() if idx >= 0]
+                beta_values = [float(row[idx]) for idx in self._beta_idx_map.values() if idx >= 0]
                 
                 # Nucleotide conservation: all beta values are 0
                 is_nt_conserved = all(beta == 0.0 for beta in beta_values) if beta_values else False
                 
                 # Amino acid conservation: synonymous substitutions only (beta = 0 but alpha might be > 0)
-                # This is a simplification - in the original code, entries 1-3 being 0 indicated aa conservation
-                # Here we check if all beta values are 0 but at least one group has substitutions
-                subs_values = [row[idx] for idx in self._subs_idx_map.values() if idx >= 0]
+                subs_values = [float(row[idx]) for idx in self._subs_idx_map.values() if idx >= 0]
                 has_subs = any(subs > 0 for subs in subs_values) if subs_values else False
                 is_aa_conserved = is_nt_conserved and has_subs
                 
                 site_data["nt_conserved"] = is_nt_conserved
                 site_data["aa_conserved"] = is_aa_conserved
-            except (IndexError, TypeError):
+            except (IndexError, TypeError, ValueError):
                 site_data["nt_conserved"] = False
                 site_data["aa_conserved"] = False
             
-            # Store data for this site
-            site_results[site] = site_data
+            return site_data
         
-        return site_results
+        # Use the base helper to process site data
+        return self.process_site_mle_data(results, column_names, process_row)
 
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
         return [
-            'N',
-            'T',
-            'dN/dS',
-            'sites',
             'nt_conserved',
             'aa_conserved'
         ]

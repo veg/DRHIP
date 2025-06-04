@@ -55,25 +55,15 @@ class BustedMethod(HyPhyMethod):
         else:
             processed['BUSTED_prop_sites_in_omega3'] = 0.0
         
-        # Calculate dN/dS if possible
-        try:
-            if 'fits' in results and 'Unconstrained model' in results['fits']:
-                model_fit = results['fits']['Unconstrained model']
-                if 'Rate Distributions' in model_fit and 'global' in model_fit['Rate Distributions']:
-                    rates = model_fit['Rate Distributions']['global']
-                    # Calculate weighted average of omega values
-                    omega_sum = 0.0
-                    for rate in rates:
-                        omega_sum += rate['omega'] * rate.get('weight', rate.get('proportion', 0.0))
-                    processed['dN/dS'] = omega_sum
-                else:
-                    processed['dN/dS'] = 0.0
-            else:
-                processed['dN/dS'] = 0.0
-        except Exception as e:
-            # If anything goes wrong with calculations, use default values
-            print(f"Error processing BUSTED results: {e}")
-            processed['dN/dS'] = 0.0
+        # Calculate dN/dS using the helper function
+        dnds_stats = self.calculate_rate_distribution_stats(
+            results, 
+            model_name='Unconstrained model', 
+            distribution_name='global'
+        )
+        
+        # Update processed results with dN/dS
+        processed.update(dnds_stats)
         
         return processed
     
