@@ -62,6 +62,16 @@ hyphy/
   - Substitution counts
   - Conservation status
 
+### Data Representation
+
+The toolkit uses consistent markers to represent different types of data:
+
+- **Significant Results**: Actual values (p-values, property names, etc.)
+- **Non-significant Results**: "-" marker for most fields
+- **Missing or Malformed Data**: "NA" marker
+
+If data for a particular method is missing for a gene, or if the data is malformed or cannot be processed, the toolkit will output "NA" in the corresponding fields. This allows for easy identification of missing data versus non-significant results.
+
 ## Development and Testing
 
 ### Setting up Development Environment
