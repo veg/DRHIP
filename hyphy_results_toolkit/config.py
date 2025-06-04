@@ -2,6 +2,9 @@
 Configuration settings for the hyphy-results-toolkit.
 """
 
+# Default values for comparison groups
+DEFAULT_COMPARISON_GROUPS = ['foreground', 'background']
+
 # Method-specific paths relative to results directory for CAPHEINE structure
 METHOD_PATHS = {
     'BUSTED': 'BUSTED',
@@ -20,8 +23,6 @@ SUMMARY_FIELDNAMES = [
     'T',      # Total branch length
     'dN/dS',  # Overall dN/dS ratio
     'sites',  # Number of sites
-    'nt_conserved',
-    'aa_conserved',
     'diff_sites',
 ]
 
@@ -34,4 +35,6 @@ SITES_FIELDNAMES = [
     'diff_majority_residue',
     'unique_aa',
     'intensified_positive_selection',
+    'cfel_marker',
+    'prime_marker',
 ]

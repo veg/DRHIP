@@ -66,7 +66,6 @@ def load_json(filepath: str) -> dict:
         with open(filepath, 'r') as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"File not found: {filepath}")
         return None
     except json.JSONDecodeError:
         print(f"Error decoding JSON from file: {filepath}")

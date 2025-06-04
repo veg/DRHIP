@@ -10,11 +10,11 @@ Authors:
 import os
 import threading
 import csv
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Set
 
 from ..utils import file_handlers as fh
 from ..methods import HyPhyMethodRegistry
-from ..config import SUMMARY_FIELDNAMES, SITES_FIELDNAMES
+from ..config import SUMMARY_FIELDNAMES, SITES_FIELDNAMES, DEFAULT_COMPARISON_GROUPS
 
 # Define a lock for synchronizing writes to the output files
 write_lock = threading.Lock()
@@ -64,7 +64,6 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
             method_results[method.name] = result
         else:
             missing_methods.append(method.name)
-            print(f"Missing {method.name} analysis for {gene}")
     
     # Check if we have at least one method with results
     if not method_results:
@@ -74,6 +73,60 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     # Log which methods are missing but we're continuing anyway
     if missing_methods:
         print(f"Processing {gene} with {len(method_results)} methods. Missing: {', '.join(missing_methods)}")        
+    
+    # Detect and print comparison groups from CFEL and RELAX results
+    cfel_groups: List[str] = []
+    relax_groups: List[str] = []
+    
+    # Detect comparison groups from CFEL results
+    if 'CFEL' in method_results and method_results['CFEL'].get('tested', {}).get('0'):
+        cfel_tested = method_results['CFEL']['tested']['0']
+        detected_groups: Set[str] = set()
+        
+        # Extract unique group tags from tested branches
+        for branch, tag in cfel_tested.items():
+            detected_groups.add(tag)
+        
+        if detected_groups:
+            cfel_groups = list(detected_groups)
+            print(f"Detected comparison groups from CFEL results: {', '.join(cfel_groups)}")
+    
+    # Detect comparison groups from RELAX results
+    if 'RELAX' in method_results and method_results['RELAX'].get('test results', {}).get('relaxation or intensification parameter'):
+        relax_k = method_results['RELAX']['test results']['relaxation or intensification parameter']
+        if isinstance(relax_k, dict):
+            detected_groups = [k for k in relax_k.keys() if k != 'overall']
+            if detected_groups:
+                relax_groups = detected_groups
+                print(f"Detected comparison groups from RELAX results: {', '.join(relax_groups)}")
+    
+    # Validate consistency between CFEL and RELAX groups
+    if cfel_groups and relax_groups:
+        # Check if the groups are the same (ignoring order)
+        if set(cfel_groups) == set(relax_groups):
+            print("Comparison groups are consistent between CFEL and RELAX methods")
+            comparison_groups = cfel_groups  # Use CFEL groups (arbitrary choice)
+        else:
+            # Raise an error when comparison groups don't match
+            error_msg = "ERROR: Inconsistent comparison groups between CFEL and RELAX methods\n"
+            error_msg += f"  CFEL groups: {', '.join(cfel_groups)}\n"
+            error_msg += f"  RELAX groups: {', '.join(relax_groups)}"
+            print(error_msg)
+            raise ValueError(error_msg)
+    elif cfel_groups:
+        comparison_groups = cfel_groups
+    elif relax_groups:
+        comparison_groups = relax_groups
+    else:
+        # If no groups were detected from results, use the defaults
+        comparison_groups = DEFAULT_COMPARISON_GROUPS.copy()
+        print(f"Using default comparison groups: {', '.join(DEFAULT_COMPARISON_GROUPS)}")
+        
+    # Make detected comparison groups available to methods
+    for method in methods:
+        if hasattr(method, 'set_comparison_groups'):
+            method.set_comparison_groups(comparison_groups)
+    
 
     # Initialize summary dictionary with gene name only
     gene_summary_dict = {'gene': gene}

@@ -17,6 +17,16 @@ class HyPhyMethod(ABC):
         """
         self.name = name
         self.file_suffix = file_suffix
+        self._comparison_groups = None
+        
+    def set_comparison_groups(self, comparison_groups):
+        """Set the comparison groups to use for analysis.
+        
+        Args:
+            comparison_groups: List of comparison group names
+        """
+        self._comparison_groups = comparison_groups
+        return self
     
     def get_file_path(self, results_path: str, gene: str) -> str:
         """Get the path to results file for this method.

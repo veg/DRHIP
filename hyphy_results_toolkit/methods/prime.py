@@ -94,16 +94,37 @@ class PrimeMethod(HyPhyMethod):
             for row_idx, row in enumerate(results['MLE']['content']['0']):
                 site = row_idx  # Use row index as site number
                 
-                # Get p-values for all properties
-                pvals = [float(row[idx]) for idx in p_indices]
+                # Get p-values for all properties, with error handling
+                pvals = []
+                has_valid_data = True
                 
-                # If any p-value is significant
-                if min(pvals) <= 0.05:
-                    # Collect significant property tags
-                    significant_tags = [prime_tags[i] for i, pval in enumerate(pvals) if pval <= 0.05]
-                    
+                for idx in p_indices:
+                    try:
+                        if idx < len(row):
+                            pvals.append(float(row[idx]))
+                        else:
+                            has_valid_data = False  # Mark as invalid if index out of range
+                            break
+                    except (ValueError, TypeError):
+                        has_valid_data = False  # Mark as invalid if conversion fails
+                        break
+                
+                # Always create an entry for each site
+                if not has_valid_data or not pvals or not prime_tags:
+                    # For missing or malformed data
                     site_results[site] = {
-                        'prime_marker': ','.join(significant_tags) if significant_tags else '-'
+                        'prime_marker': 'NA'
+                    }
+                elif min(pvals) <= 0.05:
+                    # For sites with significant properties
+                    significant_tags = [prime_tags[i] for i, pval in enumerate(pvals) if pval <= 0.05]
+                    site_results[site] = {
+                        'prime_marker': ','.join(significant_tags)
+                    }
+                else:
+                    # For non-significant sites, use dash as in original End2End pipeline
+                    site_results[site] = {
+                        'prime_marker': '-'
                     }
         
         return site_results

@@ -178,10 +178,61 @@ class BustedMethod(HyPhyMethod):
                 for sub, count in counts.items():
                     site_substitutions.append(f"{sub}:{count}")
             
+            # Calculate majority residue
+            majority_residue = '-'
+            if 'test' in composition and composition['test']:
+                # Sort by frequency and get the most common residue
+                sorted_residues = sorted(
+                    [[aa, count] for aa, count in composition['test'].items()],
+                    key=lambda d: -d[1]
+                )
+                if sorted_residues:
+                    majority_residue = sorted_residues[0][0]
+            
+            # Calculate unique amino acids
+            unique_aa = ''
+            if 'test' in composition and composition['test']:
+                # Get all amino acids from test group
+                test_aas = set(composition['test'].keys())
+                
+                # Get all amino acids from background group
+                background_aas = set()
+                if 'background' in composition:
+                    background_aas.update(composition['background'].keys())
+                
+                # Find unique amino acids
+                unique_aas = test_aas - background_aas
+                if unique_aas:
+                    unique_aa = ' '.join(sorted(unique_aas))
+            
+            # Check for different majority residue
+            diff_majority_residue = 'NA'  # Default to NA for missing data
+            if 'test' in composition and 'background' in composition:
+                if composition['test'] and composition['background']:
+                    # Get majority residue in test group
+                    test_sorted = sorted(
+                        [[aa, count] for aa, count in composition['test'].items()],
+                        key=lambda d: -d[1]
+                    )
+                    
+                    # Get majority residue in background group
+                    bg_sorted = sorted(
+                        [[aa, count] for aa, count in composition['background'].items()],
+                        key=lambda d: -d[1]
+                    )
+                    
+                    # Compare majority residues
+                    if test_sorted and bg_sorted:
+                        # We have valid data, so set to True or False
+                        diff_majority_residue = test_sorted[0][0] != bg_sorted[0][0]
+            
             # Store the site data
             site_data[site_num] = {
-                'composition': ','.join(site_composition),
-                'substitutions': ','.join(site_substitutions)
+                'composition': ','.join(site_composition) if site_composition else 'NA',
+                'substitutions': ','.join(site_substitutions) if site_substitutions else 'NA',
+                'majority_residue': majority_residue if majority_residue != '-' else 'NA',
+                'diff_majority_residue': diff_majority_residue,
+                'unique_aa': unique_aa if unique_aa else 'NA'
             }
             
         return site_data
@@ -200,5 +251,8 @@ class BustedMethod(HyPhyMethod):
         """Get list of site-specific fields produced by this method."""
         return [
             'composition',
-            'substitutions'
+            'substitutions',
+            'majority_residue',
+            'diff_majority_residue',
+            'unique_aa'
         ]
