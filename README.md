@@ -22,6 +22,7 @@ pip install -e .
 - Generate comprehensive summary statistics
 - Site-specific analysis with conservation tracking
 - Thread-safe output handling
+- **Combined output files** across all genes for easy analysis
 
 ## Usage
 
@@ -51,16 +52,21 @@ hyphy/
 ```
 
 ### Output Files
-- **{gene}_summary.csv**: Gene-level summary statistics including:
+
+The toolkit produces combined files that aggregate data across all genes:
+
+- **combined_summary.csv**: Gene-level summary statistics including:
   - RELAX: K parameter, p-values, and LRT statistics
   - BUSTED: Evidence of selection, omega distributions
   - Conservation metrics
   - Branch length information
 
-- **{gene}_sites.csv**: Site-specific analysis including:
+- **combined_sites.csv**: Site-specific analysis including:
   - Beta values per comparison group
   - Substitution counts
   - Conservation status
+
+The combined files automatically include the superset of all fields found across all genes, with missing values marked as 'NA'. This makes it easy to analyze patterns across the entire dataset.
 
 ### Data Representation
 
@@ -71,6 +77,110 @@ The toolkit uses consistent markers to represent different types of data:
 - **Missing or Malformed Data**: "NA" marker
 
 If data for a particular method is missing for a gene, or if the data is malformed or cannot be processed, the toolkit will output "NA" in the corresponding fields. This allows for easy identification of missing data versus non-significant results.
+
+## Extending the Toolkit
+
+### Adding New Fields for Specific Methods
+
+To add new fields to the output for an existing method:
+
+1. **Modify the method's class**: Each method has its own class in `hyphy_results_toolkit/methods/` (e.g., `busted.py`, `relax.py`).
+   - Add the new field to the `process_results()` method for summary data
+   - Add the new field to the `process_site_data()` method for site-specific data
+
+2. **Update validation fields** (optional): If the field should be validated as a required field:
+   - Add it to `SUMMARY_FIELDNAMES` or `SITES_FIELDNAMES` in `config.py`
+
+Example for adding a new summary field to BUSTED:
+
+```python
+def process_results(self, results):
+    summary_data = super().process_results(results)
+    
+    # Add your new field
+    summary_data['new_field_name'] = self._extract_new_field(results)
+    
+    return summary_data
+    
+def _extract_new_field(self, results):
+    # Logic to extract the new field from results
+    # Return 'NA' if data is missing or invalid
+    try:
+        # Extract data from results
+        return extracted_value
+    except:
+        return 'NA'
+```
+
+### Field Validation
+
+The toolkit validates that all expected fields are present in the output:
+
+1. **Required fields** are defined in `config.py`:
+   - `SUMMARY_FIELDNAMES`: Required fields for summary files
+   - `SITES_FIELDNAMES`: Required fields for site files
+
+2. **Field validation** occurs in `process_gene.py`:
+   - Missing fields are reported as warnings
+   - This ensures consistent output structure across all genes
+
+### Adding a New Analysis Method
+
+To add support for a new HyPhy analysis method:
+
+1. **Create a new method class** in `hyphy_results_toolkit/methods/`:
+   - Inherit from `HyPhyMethod` in `base.py`
+   - Implement the required methods: `process_results()` and optionally `process_site_data()`
+
+2. **Register the method** in `registry.py`:
+   - Import your new method class
+   - Add it to the `__init__` method of `HyPhyMethodRegistry`
+
+3. **Update the method paths** in `config.py`:
+   - Add an entry to `METHOD_PATHS` if your method uses a different directory name
+
+Example for a new method:
+
+```python
+# new_method.py
+from .base import HyPhyMethod
+
+class NewMethod(HyPhyMethod):
+    def __init__(self):
+        super().__init__(name='NEW_METHOD', file_suffix='NEW_METHOD.json')
+        
+    def process_results(self, results):
+        # Process and return summary data
+        return {...}
+        
+    def process_site_data(self, results):
+        # Process and return site-specific data
+        return {...}
+```
+
+Then in `registry.py`:
+```python
+from .new_method import NewMethod
+# ...
+self.register(NewMethod())
+```
+
+### Comparison Groups Detection
+
+The toolkit automatically detects comparison groups (e.g., foreground vs. background) from the results:
+
+1. **Detection logic** is in `utils/result_helpers.py`:
+   - `detect_comparison_groups()` extracts groups from CFEL and RELAX results
+   - Falls back to default groups if none are detected
+
+2. **Adding detection for a new method**:
+   - Add a detection function in `detect_comparison_groups()`
+   - Add your method to the `detection_functions` dictionary
+   - Add your method to the `methods_to_check` list
+
+3. **Consistency validation**:
+   - The toolkit ensures that groups are consistent across methods
+   - Raises an error if inconsistent groups are detected
 
 ## Development and Testing
 
@@ -100,7 +210,7 @@ The test suite includes:
 - Unit tests for all HyPhy analysis methods
 - Integration tests for gene processing
 - Thread safety validation
-- Mock data fixtures for reliable testing
+- Minimal actual HyPhy output files for reliable testing
 
 ## Requirements
 
