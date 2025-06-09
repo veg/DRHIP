@@ -123,6 +123,60 @@ def ensure_ordered_fields(
     return ordered_fields
 
 
+def collect_method_fields(
+    methods: List[Any],
+    method_results: Dict[str, Dict[str, Any]],
+    field_getter_name: str,
+    base_fields: Set[str] = None
+) -> Set[str]:
+    """Collect fields from methods that have results.
+    
+    Args:
+        methods: List of method objects
+        method_results: Dictionary of method results keyed by method name
+        field_getter_name: Name of the method function that returns fields (e.g., 'get_summary_fields')
+        base_fields: Set of base fields to always include
+        
+    Returns:
+        Set of collected fields from methods with results
+    """
+    # Initialize with base fields if provided
+    collected_fields = set(base_fields) if base_fields else set()
+    
+    # Collect fields from methods that have results
+    for method in methods:
+        if method.name in method_results and hasattr(method, field_getter_name):
+            field_getter = getattr(method, field_getter_name)
+            # Pass the results if the method supports it
+            if 'results' in field_getter.__code__.co_varnames:
+                collected_fields.update(field_getter(method_results[method.name]))
+            else:
+                collected_fields.update(field_getter())
+    
+    return collected_fields
+
+
+def validate_fields(
+    expected_fields: Set[str],
+    output_fields: Set[str],
+    context: str = None,
+    entity_name: str = None
+) -> None:
+    """Validate that all expected fields are present in the output fields.
+    
+    Args:
+        expected_fields: Set of fields that are expected
+        output_fields: Set of fields that are actually in the output
+        context: Context for the validation (e.g., 'summary', 'site')
+        entity_name: Name of the entity being validated (e.g., gene name)
+    """
+    if not expected_fields.issubset(output_fields):
+        missing_fields = expected_fields - output_fields
+        context_str = f" {context}" if context else ""
+        entity_str = f" for {entity_name}" if entity_name else ""
+        print(f"Warning: Missing{context_str} fields{entity_str}: {missing_fields}")
+
+
 def detect_comparison_groups(
     method_results: Dict[str, Dict[str, Any]],
     default_groups: Optional[List[str]] = None,

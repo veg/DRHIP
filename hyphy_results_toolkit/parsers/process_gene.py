@@ -18,7 +18,13 @@ from ..config import (
     DEFAULT_COMPARISON_GROUPS
 )
 from ..utils import file_handlers as fh
-from ..utils.result_helpers import merge_method_data, ensure_ordered_fields, detect_comparison_groups
+from ..utils.result_helpers import (
+    merge_method_data, 
+    ensure_ordered_fields, 
+    detect_comparison_groups,
+    collect_method_fields,
+    validate_fields
+)
 from ..methods import HyPhyMethodRegistry
 
 # Define a lock for synchronizing writes to the output files
@@ -213,67 +219,31 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
                         context={'gene': gene, 'comparison_group': group}
                     )
 
-    # Validate that all expected summary fields are present
-    if not expected_summary_fields.issubset(output_summary_fields):
-        missing_summary_fields = expected_summary_fields - output_summary_fields
-        print(f"Warning: Missing summary fields for {gene}: {missing_summary_fields}")
-        
-    # Validate that all expected site fields are present
-    if not expected_site_fields.issubset(output_site_fields):
-        missing_site_fields = expected_site_fields - output_site_fields
-        print(f"Warning: Missing site fields for {gene}: {missing_site_fields}")
-        
-    # Collect expected comparison site fields from the methods that are actually used
-    declared_comparison_site_fields = set(['gene', 'site', 'comparison_group'])  # Base fields always expected
-    for method in methods:
-        if method.name in method_results and hasattr(method, 'get_comparison_group_site_fields'):
-            # Pass the results if the method supports it
-            if 'results' in method.get_comparison_group_site_fields.__code__.co_varnames:
-                declared_comparison_site_fields.update(method.get_comparison_group_site_fields(method_results[method.name]))
-            else:
-                declared_comparison_site_fields.update(method.get_comparison_group_site_fields())
+    # Validate summary and site fields
+    validate_fields(expected_summary_fields, output_summary_fields, context="summary", entity_name=gene)
+    validate_fields(expected_site_fields, output_site_fields, context="site", entity_name=gene)
     
-    # Collect expected comparison summary fields from the methods that are actually used
-    declared_comparison_summary_fields = set(['gene', 'comparison_group'])  # Base fields always expected
-    for method in methods:
-        if method.name in method_results and hasattr(method, 'get_comparison_group_summary_fields'):
-            # Pass the results if the method supports it
-            if 'results' in method.get_comparison_group_summary_fields.__code__.co_varnames:
-                declared_comparison_summary_fields.update(method.get_comparison_group_summary_fields(method_results[method.name]))
-            else:
-                declared_comparison_summary_fields.update(method.get_comparison_group_summary_fields())
-    
-    # Validate that all expected comparison site fields are present, but only for methods with results
+    # Only validate comparison fields if we have comparison groups
     if comparison_groups:
-        # Only check fields from methods that have results
-        active_comparison_site_fields = set(['gene', 'site', 'comparison_group'])  # Base fields always expected
-        for method in methods:
-            if method.name in method_results and hasattr(method, 'get_comparison_group_site_fields'):
-                if 'results' in method.get_comparison_group_site_fields.__code__.co_varnames:
-                    active_comparison_site_fields.update(method.get_comparison_group_site_fields(method_results[method.name]))
-                else:
-                    active_comparison_site_fields.update(method.get_comparison_group_site_fields())
+        # Collect and validate site-specific comparison fields from active methods
+        active_comparison_site_fields = collect_method_fields(
+            methods=methods,
+            method_results=method_results,
+            field_getter_name='get_comparison_group_site_fields',
+            base_fields={'gene', 'site', 'comparison_group'}
+        )
+        validate_fields(active_comparison_site_fields, output_comparison_site_fields, 
+                      context="comparison site", entity_name=gene)
         
-        # Now check only the fields from active methods
-        if not active_comparison_site_fields.issubset(output_comparison_site_fields):
-            missing_site_fields = active_comparison_site_fields - output_comparison_site_fields
-            print(f"Warning: Missing comparison site fields for {gene}: {missing_site_fields}")
-        
-    # Validate that all expected comparison summary fields are present, but only for methods with results
-    if comparison_groups:
-        # Only check fields from methods that have results
-        active_comparison_summary_fields = set(['gene', 'comparison_group'])  # Base fields always expected
-        for method in methods:
-            if method.name in method_results and hasattr(method, 'get_comparison_group_summary_fields'):
-                if 'results' in method.get_comparison_group_summary_fields.__code__.co_varnames:
-                    active_comparison_summary_fields.update(method.get_comparison_group_summary_fields(method_results[method.name]))
-                else:
-                    active_comparison_summary_fields.update(method.get_comparison_group_summary_fields())
-        
-        # Now check only the fields from active methods
-        if not active_comparison_summary_fields.issubset(output_comparison_summary_fields):
-            missing_summary_fields = active_comparison_summary_fields - output_comparison_summary_fields
-            print(f"Warning: Missing comparison summary fields for {gene}: {missing_summary_fields}")
+        # Collect and validate non-site-specific comparison fields from active methods
+        active_comparison_summary_fields = collect_method_fields(
+            methods=methods,
+            method_results=method_results,
+            field_getter_name='get_comparison_group_summary_fields',
+            base_fields={'gene', 'comparison_group'}
+        )
+        validate_fields(active_comparison_summary_fields, output_comparison_summary_fields, 
+                      context="comparison summary", entity_name=gene)
 
     # Check if files exist and warn about overwriting
     if os.path.exists(outfile_summary):
