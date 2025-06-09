@@ -10,9 +10,13 @@ Authors:
 import os
 import csv
 import threading
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 
-from ..config import SUMMARY_FIELDNAMES, SITES_FIELDNAMES, DEFAULT_COMPARISON_GROUPS
+from ..config import (
+    SUMMARY_FIELDNAMES, 
+    SITES_FIELDNAMES, 
+    DEFAULT_COMPARISON_GROUPS
+)
 from ..utils import file_handlers as fh
 from ..utils.result_helpers import merge_method_data, ensure_ordered_fields, detect_comparison_groups
 from ..methods import HyPhyMethodRegistry
@@ -37,14 +41,15 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     
     # Get all methods
     methods = registry.get_all_methods()
-    
-    # Expected fields from config
+    # Track expected field names for validation
     expected_summary_fields = set(SUMMARY_FIELDNAMES)
     expected_site_fields = set(SITES_FIELDNAMES)
     
-    # Fields get added to the output as we process the methods
-    output_summary_fields = {'gene'}  # Gene is always provided
-    output_site_fields = {'gene', 'site'}  # These are always provided
+    # Track which fields are actually in the output
+    output_summary_fields = set(['gene'])  # Always include gene
+    output_site_fields = set(['gene', 'site'])  # Always include gene and site
+    output_comparison_site_fields = set(['gene', 'site', 'comparison_group'])
+    output_comparison_summary_fields = set(['gene', 'comparison_group'])  # For non-site-specific comparison data
     
     ####### Set up output files #######
     # Ensure output directory exists
@@ -52,6 +57,8 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     
     outfile_summary = os.path.join(output_dir, f"{gene}_summary.csv")
     outfile_sites = os.path.join(output_dir, f"{gene}_sites.csv")
+    outfile_comparison_site = os.path.join(output_dir, f"{gene}_comparison_site.csv")
+    outfile_comparison_summary = os.path.join(output_dir, f"{gene}_comparison_summary.csv")
     ####### End set up output files #######
 
     # Load and validate method results
@@ -94,9 +101,17 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     # Dictionary to track site-specific data
     site_recorder: Dict[int, Dict[str, Any]] = {}
     
+    # Dictionary to track site-specific comparison group data
+    comparison_site_recorder: Dict[Tuple[int, str], Dict[str, Any]] = {}
+    
+    # Dictionary to track non-site-specific comparison group data
+    comparison_summary_recorder: Dict[str, Dict[str, Any]] = {}
+    
     # Track which methods provide which fields
     field_providers = {}
     site_field_providers = {}
+    comparison_site_field_providers = {}
+    comparison_summary_field_providers = {}
 
     # Process each method's results
     for method in methods:
@@ -144,6 +159,59 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
                         providers=site_field_providers,
                         context={'gene': gene, 'site': site}
                     )
+                    
+            # Process comparison group-specific site data if available
+            if comparison_groups and hasattr(method, 'process_comparison_site_data'):
+                comparison_site_data = method.process_comparison_site_data(method_results[method.name])
+                
+                # Process each site's comparison group data
+                for site, site_comp_data in comparison_site_data.items():
+                    for group, group_data in site_comp_data.items():
+                        # Create a unique key for each site-group combination
+                        comp_key = (site, group)
+                        if comp_key not in comparison_site_recorder:
+                            comparison_site_recorder[comp_key] = {
+                                'gene': gene,
+                                'site': site,
+                                'comparison_group': group
+                            }
+                        
+                        # Track fields that will be in the output
+                        output_comparison_site_fields.update(group_data.keys())
+                        
+                        # Use helper to merge comparison group data
+                        merge_method_data(
+                            target_dict=comparison_site_recorder[comp_key],
+                            method_data=group_data,
+                            method_name=method.name,
+                            providers=comparison_site_field_providers,
+                            context={'gene': gene, 'site': site, 'comparison_group': group}
+                        )
+                        
+            # Process comparison group-specific non-site data if available
+            if comparison_groups and hasattr(method, 'process_comparison_data'):
+                comparison_data = method.process_comparison_data(method_results[method.name])
+                
+                # Process each group's non-site-specific data
+                for group, group_data in comparison_data.items():
+                    # Use group name as key
+                    if group not in comparison_summary_recorder:
+                        comparison_summary_recorder[group] = {
+                            'gene': gene,
+                            'comparison_group': group
+                        }
+                    
+                    # Track fields that will be in the output
+                    output_comparison_summary_fields.update(group_data.keys())
+                    
+                    # Use helper to merge comparison group data
+                    merge_method_data(
+                        target_dict=comparison_summary_recorder[group],
+                        method_data=group_data,
+                        method_name=method.name,
+                        providers=comparison_summary_field_providers,
+                        context={'gene': gene, 'comparison_group': group}
+                    )
 
     # Validate that all expected summary fields are present
     if not expected_summary_fields.issubset(output_summary_fields):
@@ -154,6 +222,58 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     if not expected_site_fields.issubset(output_site_fields):
         missing_site_fields = expected_site_fields - output_site_fields
         print(f"Warning: Missing site fields for {gene}: {missing_site_fields}")
+        
+    # Collect expected comparison site fields from the methods that are actually used
+    declared_comparison_site_fields = set(['gene', 'site', 'comparison_group'])  # Base fields always expected
+    for method in methods:
+        if method.name in method_results and hasattr(method, 'get_comparison_group_site_fields'):
+            # Pass the results if the method supports it
+            if 'results' in method.get_comparison_group_site_fields.__code__.co_varnames:
+                declared_comparison_site_fields.update(method.get_comparison_group_site_fields(method_results[method.name]))
+            else:
+                declared_comparison_site_fields.update(method.get_comparison_group_site_fields())
+    
+    # Collect expected comparison summary fields from the methods that are actually used
+    declared_comparison_summary_fields = set(['gene', 'comparison_group'])  # Base fields always expected
+    for method in methods:
+        if method.name in method_results and hasattr(method, 'get_comparison_group_summary_fields'):
+            # Pass the results if the method supports it
+            if 'results' in method.get_comparison_group_summary_fields.__code__.co_varnames:
+                declared_comparison_summary_fields.update(method.get_comparison_group_summary_fields(method_results[method.name]))
+            else:
+                declared_comparison_summary_fields.update(method.get_comparison_group_summary_fields())
+    
+    # Validate that all expected comparison site fields are present, but only for methods with results
+    if comparison_groups:
+        # Only check fields from methods that have results
+        active_comparison_site_fields = set(['gene', 'site', 'comparison_group'])  # Base fields always expected
+        for method in methods:
+            if method.name in method_results and hasattr(method, 'get_comparison_group_site_fields'):
+                if 'results' in method.get_comparison_group_site_fields.__code__.co_varnames:
+                    active_comparison_site_fields.update(method.get_comparison_group_site_fields(method_results[method.name]))
+                else:
+                    active_comparison_site_fields.update(method.get_comparison_group_site_fields())
+        
+        # Now check only the fields from active methods
+        if not active_comparison_site_fields.issubset(output_comparison_site_fields):
+            missing_site_fields = active_comparison_site_fields - output_comparison_site_fields
+            print(f"Warning: Missing comparison site fields for {gene}: {missing_site_fields}")
+        
+    # Validate that all expected comparison summary fields are present, but only for methods with results
+    if comparison_groups:
+        # Only check fields from methods that have results
+        active_comparison_summary_fields = set(['gene', 'comparison_group'])  # Base fields always expected
+        for method in methods:
+            if method.name in method_results and hasattr(method, 'get_comparison_group_summary_fields'):
+                if 'results' in method.get_comparison_group_summary_fields.__code__.co_varnames:
+                    active_comparison_summary_fields.update(method.get_comparison_group_summary_fields(method_results[method.name]))
+                else:
+                    active_comparison_summary_fields.update(method.get_comparison_group_summary_fields())
+        
+        # Now check only the fields from active methods
+        if not active_comparison_summary_fields.issubset(output_comparison_summary_fields):
+            missing_summary_fields = active_comparison_summary_fields - output_comparison_summary_fields
+            print(f"Warning: Missing comparison summary fields for {gene}: {missing_summary_fields}")
 
     # Check if files exist and warn about overwriting
     if os.path.exists(outfile_summary):
@@ -164,6 +284,8 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     # Use helper to ensure fields are ordered properly
     ordered_summary_fields = ensure_ordered_fields(output_summary_fields, ['gene'])
     ordered_site_fields = ensure_ordered_fields(output_site_fields, ['gene', 'site'])
+    ordered_comparison_site_fields = ensure_ordered_fields(output_comparison_site_fields, ['gene', 'site', 'comparison_group'])
+    ordered_comparison_summary_fields = ensure_ordered_fields(output_comparison_summary_fields, ['gene', 'comparison_group'])
     
     # Write results to files
     with write_lock:
@@ -179,3 +301,19 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
             writer.writeheader()  # Always write header
             for site_dict in site_recorder.values():
                 writer.writerow(site_dict)
+                
+        # Write site-specific comparison group data if we have any
+        if comparison_site_recorder:
+            with open(outfile_comparison_site, 'w', newline='') as csvfile:  # 'w' mode to overwrite
+                writer = csv.DictWriter(csvfile, fieldnames=ordered_comparison_site_fields, extrasaction='ignore')
+                writer.writeheader()  # Always write header
+                for comp_dict in comparison_site_recorder.values():
+                    writer.writerow(comp_dict)
+                    
+        # Write non-site-specific comparison group data if we have any
+        if comparison_summary_recorder:
+            with open(outfile_comparison_summary, 'w', newline='') as csvfile:  # 'w' mode to overwrite
+                writer = csv.DictWriter(csvfile, fieldnames=ordered_comparison_summary_fields, extrasaction='ignore')
+                writer.writeheader()  # Always write header
+                for comp_dict in comparison_summary_recorder.values():
+                    writer.writerow(comp_dict)

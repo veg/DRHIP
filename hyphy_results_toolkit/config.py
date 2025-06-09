@@ -32,9 +32,25 @@ SITES_FIELDNAMES = [
     'composition',
     'substitutions',
     'majority_residue',
-    'diff_majority_residue',
-    'unique_aa',
-    'intensified_positive_selection',
-    'cfel_marker',
     'prime_marker',
+]
+
+COMPARISON_GROUPS_SUMMARY_FIELDNAMES = [
+    'gene',
+    'comparison_group',
+    'group_N',
+    'group_T',
+    'group_dN/dS',
+    'group_nt_conserved',
+    'group_aa_conserved',
+]
+
+COMPARISON_GROUPS_SITE_FIELDNAMES = [
+    'gene',
+    'site',
+    'comparison_group',
+    'unique_aa',
+    'diff_majority_residue',
+    'cfel_marker',
+    'intensified_positive_selection'
 ]

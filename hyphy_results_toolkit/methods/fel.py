@@ -66,9 +66,7 @@ class FelMethod(HyPhyMethod):
                 alpha_index >= len(row) or beta_index >= len(row) or pvalue_index >= len(row)):
                 # Return NA values for missing data
                 return {
-                    'fel_selection': 'NA',
-                    'intensified_positive_selection': 'NA',
-                    'cfel_marker': 'NA'
+                    'fel_selection': 'NA'
                 }
             
             try:
@@ -83,18 +81,14 @@ class FelMethod(HyPhyMethod):
                     else 'neutral'
                 )
                 
-                # Return site data
+                # Return site data - only include site-specific fields
                 return {
-                    'fel_selection': selection_type if pvalue <= 0.05 else 'neutral',
-                    'intensified_positive_selection': beta > alpha and pvalue <= 0.05,
-                    'cfel_marker': f"{pvalue:.3f}" if pvalue <= 0.05 else "-"
+                    'fel_selection': selection_type if pvalue <= 0.05 else 'neutral'
                 }
             except (ValueError, TypeError):
                 # Return NA values for malformed data
                 return {
-                    'fel_selection': 'NA',
-                    'intensified_positive_selection': 'NA',
-                    'cfel_marker': 'NA'
+                    'fel_selection': 'NA'
                 }
         
         # Use the helper to process site data
@@ -112,7 +106,22 @@ class FelMethod(HyPhyMethod):
     def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
         return [
-            'fel_selection',
-            'intensified_positive_selection',
-            'cfel_marker'
+            'fel_selection'
         ]
+        
+    @staticmethod
+    def get_comparison_group_fields() -> List[str]:
+        """Get list of fields that are specific to comparison groups."""
+        return []  # FEL doesn't have comparison group-specific fields
+        
+    def process_comparison_site_data(self, results: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Process comparison group-specific site data from FEL results.
+        
+        Args:
+            results: Raw FEL results dictionary
+            
+        Returns:
+            Dictionary mapping site IDs to dictionaries of comparison group-specific data
+        """
+        # FEL doesn't have comparison group-specific site data
+        return {}

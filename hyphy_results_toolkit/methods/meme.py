@@ -99,3 +99,20 @@ class MemeMethod(HyPhyMethod):
         return [
             'meme_marker'
         ]
+        
+    @staticmethod
+    def get_comparison_group_fields() -> List[str]:
+        """Get list of fields that are specific to comparison groups."""
+        return []  # MEME doesn't have comparison group-specific fields
+        
+    def process_comparison_site_data(self, results: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Process comparison group-specific site data from MEME results.
+        
+        Args:
+            results: Raw MEME results dictionary
+            
+        Returns:
+            Dictionary mapping site IDs to dictionaries of comparison group-specific data
+        """
+        # MEME doesn't have comparison group-specific data
+        return {}

@@ -3,7 +3,7 @@ Base class and interfaces for HyPhy analysis methods.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 class HyPhyMethod(ABC):
     """Base class for HyPhy analysis methods."""
@@ -62,9 +62,40 @@ class HyPhyMethod(ABC):
             site_data: Site-specific data from results
             
         Returns:
-            Processed site data dictionary
+            Processed site data dictionary with fields that are consistent across all sites
         """
         return {}
+        
+    def process_comparison_site_data(self, site_data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Process comparison group-specific site data.
+        
+        Args:
+            site_data: Site-specific data from results
+            
+        Returns:
+            Dictionary mapping site IDs to dictionaries of comparison group-specific data.
+            The inner dictionaries map comparison group names to field values.
+            Format: {site_id: {group_name: {field: value}}}
+        """
+        return {}
+        
+    @staticmethod
+    def get_summary_fields() -> List[str]:
+        """Get list of summary fields produced by this method."""
+        return []
+        
+    @staticmethod
+    def get_site_fields() -> List[str]:
+        """Get list of site-specific fields produced by this method."""
+        return []
+        
+    @staticmethod
+    def get_comparison_group_fields() -> List[str]:
+        """Get list of fields that are specific to comparison groups.
+        
+        These fields will be written to a separate CSV file with comparison_group column.
+        """
+        return []
     
     def has_mle_content(self, results: Dict[str, Any]) -> bool:
         """Check if results have MLE content structure.

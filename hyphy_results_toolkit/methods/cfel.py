@@ -24,15 +24,37 @@ class CfelMethod(HyPhyMethod):
             results: Raw results dictionary
             comparison_groups: List of comparison group names
         """
+        # Skip if no MLE headers
+        if not self.has_mle_headers(results):
+            return
+            
         # Use base helper to get header indices
         header_indices = self.get_header_indices(results)
         
         # Store the header map for use in other methods
         self._header_map = header_indices
         
-        # Build maps for beta and substitution columns
-        self._beta_idx_map = {g: self.get_column_index(header_indices, f"beta ({g})", -1) for g in comparison_groups}
-        self._subs_idx_map = {g: self.get_column_index(header_indices, f"subs ({g})", -1) for g in comparison_groups}
+        # Initialize maps
+        self._beta_idx_map = {}
+        self._subs_idx_map = {}
+        
+        # Find column indices for beta and substitution values
+        for header_name, idx in header_indices.items():
+            if '\u03b2' in header_name:
+                # Extract group name from column header
+                import re
+                match = re.search(r'\u03b2\s*\(([^)]+)\)', header_name)
+                if match:
+                    group = match.group(1)
+                    if group in comparison_groups:
+                        self._beta_idx_map[group] = idx
+            elif 'substitutions' in header_name.lower():
+                # Extract group name from substitutions column
+                match = re.search(r'substitutions\s*\(([^)]+)\)', header_name, re.IGNORECASE)
+                if match:
+                    group = match.group(1)
+                    if group in comparison_groups:
+                        self._subs_idx_map[group] = idx
     
     def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process CFEL results.
@@ -41,18 +63,24 @@ class CfelMethod(HyPhyMethod):
             results: Raw CFEL results dictionary
             
         Returns:
-            Processed results with standardized keys
+            Empty dictionary as CFEL doesn't use standard summary fields
         """
-        # Initialize with default NA values for required fields
-        processed = {
-            'nt_conserved': 'NA',
-            'aa_conserved': 'NA'
-        }
+        # CFEL doesn't use standard summary fields, only comparison group fields
+        return {}
         
-        # If results are missing or invalid, return the defaults
+    def process_comparison_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Process comparison group data that is not site-specific.
+        
+        Args:
+            results: Raw CFEL results dictionary
+            
+        Returns:
+            Dictionary with comparison group data
+        """
+        # If results are missing or invalid, return empty dict
         if not results or not isinstance(results, dict):
             print(f"CFEL.py: Invalid or missing CFEL results for {self._comparison_groups}")
-            return processed
+            return {}
         
         # Get the tag for each branch
         tested = results['tested']['0']
@@ -72,78 +100,78 @@ class CfelMethod(HyPhyMethod):
             if tag in by_type:
                 by_type[tag].append(branch)
         
-        # Build column lookup maps
-        headers = results["MLE"]["headers"]
-        # Always use the comparison groups we determined
-        self._build_column_maps(headers, list(by_type.keys()))
+        # Build column lookup maps for site analysis
+        if self.has_mle_headers(results):
+            headers = results["MLE"]["headers"]
+            # Always use the comparison groups we determined
+            self._build_column_maps(headers, list(by_type.keys()))
         
-        # Calculate number of sites and identify conserved sites
-        try:
-            if "MLE" in results and "content" in results["MLE"] and "0" in results["MLE"]["content"]:
-                data_rows = results["MLE"]["content"]["0"]
-                
-                # Count conserved sites (both nt and aa)
-                nt_conserved = 0
-                aa_conserved = 0
-                
-                # Build column lookup maps if not already built
-                if not self._beta_idx_map:
-                    comparison_groups = list(by_type.keys())
-                    self._build_column_maps(results, comparison_groups)
-                
-                for row in data_rows:
-                    # Get beta values for all groups
-                    beta_values = [row[idx] for idx in self._beta_idx_map.values() if idx >= 0]
-                    
-                    # Nucleotide conservation: all beta values are 0
-                    if all(beta == 0.0 for beta in beta_values) if beta_values else False:
-                        nt_conserved += 1
-                    
-                    # Amino acid conservation: synonymous substitutions only
-                    # This requires all beta values to be 0 but some substitutions to exist
-                    subs_values = [row[idx] for idx in self._subs_idx_map.values() if idx >= 0]
-                    has_subs = any(subs > 0 for subs in subs_values) if subs_values else False
-                    
-                    if all(beta == 0.0 for beta in beta_values) if beta_values else False and has_subs:
-                        aa_conserved += 1
-                
-                processed['nt_conserved'] = nt_conserved
-                processed['aa_conserved'] = aa_conserved
-            else:
-                processed['sites'] = 'NA'
-        except (KeyError, TypeError, IndexError):
-            processed['sites'] = 'NA'
+        # Initialize comparison data
+        comparison_data = {}
         
         # For each comparison group, calculate N and T
         for group, branches in by_type.items():
+            group_data = {}
+            
             # Number of sequences in this group
-            processed[f'N_{group}'] = len(branches)
+            group_data['group_N'] = len(branches)
             
             # Total branch length for this group
             try:
                 branch_lengths = [results['branch attributes']['0'][bn]['Global MG94xREV'] for bn in branches]
-                processed[f'T_{group}'] = sum(branch_lengths)
+                group_data['group_T'] = sum(branch_lengths)
             except (KeyError, TypeError):
-                processed[f'T_{group}'] = 0.0
+                group_data['group_T'] = 0.0
+            
+            # Get dN/dS for this group if available
+            try:
+                for k, r in results['fits']['Global MG94xREV']['Rate Distributions'].items():
+                    if group in k:
+                        group_data['group_dN/dS'] = r[0][0]
+                        break
+            except (KeyError, TypeError, IndexError):
+                group_data['group_dN/dS'] = 'NA'
+            
+            # Calculate conserved sites for this group
+            if self.has_mle_content(results):
+                try:
+                    data_rows = results["MLE"]["content"]["0"]
+                    
+                    # Count conserved sites (both nt and aa)
+                    nt_conserved = 0
+                    aa_conserved = 0
+                    
+                    for row in data_rows:
+                        # Get beta value for this group
+                        beta_idx = self._beta_idx_map.get(group, -1)
+                        if beta_idx >= 0:
+                            beta = float(row[beta_idx])
+                            
+                            # Nucleotide conservation: beta = 0
+                            is_nt_conserved = (beta == 0.0)
+                            
+                            # Amino acid conservation: beta = 0 but substitutions exist
+                            subs_idx = self._subs_idx_map.get(group, -1)
+                            has_subs = False
+                            if subs_idx >= 0:
+                                has_subs = (float(row[subs_idx]) > 0)
+                            
+                            is_aa_conserved = is_nt_conserved and has_subs
+                            
+                            if is_nt_conserved:
+                                nt_conserved += 1
+                            if is_aa_conserved:
+                                aa_conserved += 1
+                    
+                    group_data['group_nt_conserved'] = nt_conserved
+                    group_data['group_aa_conserved'] = aa_conserved
+                except (KeyError, TypeError, IndexError, ValueError):
+                    group_data['group_nt_conserved'] = 'NA'
+                    group_data['group_aa_conserved'] = 'NA'
+            
+            comparison_data[group] = group_data
         
-        # If there's just one group, use its values for the standard fields
-        if len(by_type) == 1:
-            group = list(by_type.keys())[0]
-            processed['N'] = processed[f'N_{group}']
-            processed['T'] = processed[f'T_{group}']
-        
-        # Get dN/dS for each group
-        for k, r in results['fits']['Global MG94xREV']['Rate Distributions'].items():
-            for group in by_type.keys():
-                if group in k:
-                    processed[f'dN/dS_{group}'] = r[0][0]
-        
-        # If there's just one group, use its dN/dS for the standard field
-        if len(by_type) == 1:
-            group = list(by_type.keys())[0]
-            processed['dN/dS'] = processed[f'dN/dS_{group}']
-        
-        return processed
+        return comparison_data
     
     def process_site_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process site-specific CFEL data using base helper functions.
@@ -152,149 +180,147 @@ class CfelMethod(HyPhyMethod):
             results: Raw CFEL results dictionary
             
         Returns:
-            Dictionary with site-specific metrics
+            Empty dictionary as CFEL doesn't use standard site fields
         """
-        # Check if required data is available using base helper functions
-        if not self.has_mle_content(results) or not self.has_mle_headers(results) or not results.get('tested', {}).get('0'):
-            # If critical data is missing, return empty results
-            return {}
+        # CFEL doesn't use standard site fields, only comparison group site fields
+        return {}
         
-        # Get the tag for each branch
-        tested = results['tested']['0']
-        by_type = {}
+    def process_comparison_site_data(self, results: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Process comparison group-specific site data from CFEL results.
         
-        # Require comparison groups to be set from process_gene.py
-        if not self._comparison_groups:
-            raise ValueError("Comparison groups must be set before processing CFEL site data")
+        Args:
+            results: Raw CFEL results dictionary
             
+        Returns:
+            Dictionary mapping site IDs to dictionaries of comparison group-specific data
+        """
+        # Skip processing if no MLE content or headers or no comparison groups
+        if not self.has_mle_content(results) or not self.has_mle_headers(results) or not self._comparison_groups:
+            return {}
+            
+        # Get MLE content
+        mle_content = results['MLE']['content']
+        
+        # Set up index maps for beta and substitution values by group if not already done
+        if not hasattr(self, '_beta_idx_map') or not self._beta_idx_map:
+            # Get header indices using base helper method
+            header_indices = self.get_header_indices(results)
+            self._beta_idx_map = {}
+            self._subs_idx_map = {}
+            
+            # Find column indices for beta and substitution values
+            for header_name, idx in header_indices.items():
+                if '\u03b2' in header_name:
+                    # Extract group name from column header (e.g., '\u03b2 (foreground)' -> 'foreground')
+                    import re
+                    match = re.search(r'\u03b2\s*\(([^)]+)\)', header_name)
+                    if match:
+                        group = match.group(1)
+                        self._beta_idx_map[group] = idx
+                elif 'substitutions' in header_name.lower():
+                    # Extract group name from substitutions column
+                    match = re.search(r'substitutions\s*\(([^)]+)\)', header_name, re.IGNORECASE)
+                    if match:
+                        group = match.group(1)
+                        self._subs_idx_map[group] = idx
+        
+        # Initialize result dictionary
+        comparison_data = {}
+        
+        # Get branch information for calculating N and T values
+        tested = results.get('tested', {}).get('0', {})
+        by_type: Dict[str, List[str]] = {}
+        
         # Initialize by_type with empty lists for each comparison group
         for group in self._comparison_groups:
             by_type[group] = []
         
-        # Now assign branches to the appropriate groups
+        # Assign branches to the appropriate groups
         for branch, tag in tested.items():
-            # Only add branches to groups that match our comparison groups
             if tag in by_type:
                 by_type[tag].append(branch)
         
-        # Build column lookup maps using base helper functions
-        self._build_column_maps(results, list(by_type.keys()))
+        # Calculate N and T for each comparison group
+        group_N_values = {}
+        group_T_values = {}
         
-        # Define column name mapping for process_site_mle_data
-        column_names = {
-            'site': 'Site',
-            'p-value': 'P-value (overall)'
-        }
-        
-        # Get pairwise p-value column indices
-        pairwise_pval_idx = {}
-        for i, group1 in enumerate(self._comparison_groups):
-            for group2 in self._comparison_groups[i+1:]:
-                # Two ways the column might appear
-                option_1 = f"P-value for {group1} vs {group2}"
-                option_2 = f"P-value for {group2} vs {group1}"
-                
-                if option_1 in self._header_map:
-                    pairwise_pval_idx[(group1, group2)] = self._header_map[option_1]
-                elif option_2 in self._header_map:
-                    pairwise_pval_idx[(group1, group2)] = self._header_map[option_2]
-        
-        # Define a function to process each row
-        def process_row(site_idx, row, column_indices):
-            site_data = {}
+        for group, branches in by_type.items():
+            # Number of sequences in this group
+            group_N_values[group] = len(branches)
             
-            # Get p-value index, with fallback
-            p_overall_idx = column_indices.get('p-value', -1)
-            if p_overall_idx == -1:
-                # Try alternate name
-                p_overall_idx = self._header_map.get("p-value", 5)  # Default to index 5 if not found
-            
-            # Check overall significance
+            # Total branch length for this group
             try:
-                overall_pval = float(row[p_overall_idx])
-                has_overall_significance = overall_pval <= 0.05
-            except (ValueError, TypeError, IndexError):
-                overall_pval = None
-                has_overall_significance = False
-            
-            # Format marker similar to End2End-DENV implementation
-            if overall_pval is None:
-                marker = "NA"  # Use NA for missing or malformed data
-            else:
-                comparisons = []
+                branch_lengths = [results['branch attributes']['0'][bn]['Global MG94xREV'] for bn in branches]
+                group_T_values[group] = sum(branch_lengths)
+            except (KeyError, TypeError):
+                group_T_values[group] = 0.0
+        
+        # Process each site in the MLE content
+        for site_id, site_content in mle_content.items():
+            if site_id == '0':  # Skip header row
+                continue
                 
-                # Add overall p-value if significant
-                if has_overall_significance:
-                    comparisons.append(f"overall: {overall_pval:.3f}")
+            row = site_content['value']
+            site_comparison_data = {}
+            
+            # Process data for each comparison group
+            for group in self._comparison_groups:
+                group_data = {}
+                
+                # Add CFEL marker for this group
+                try:
+                    beta_idx = self._beta_idx_map.get(group, -1)
+                    beta = float(row[beta_idx]) if beta_idx >= 0 else None
                     
-                    # Check pairwise comparisons if overall is significant
-                    for (group1, group2), idx in pairwise_pval_idx.items():
-                        try:
-                            pairwise_pval = float(row[idx])
-                            if pairwise_pval <= 0.05:
-                                # Format comparison key with groups in alphabetical order for consistency
-                                sorted_groups = sorted([group1, group2])
-                                comparisons.append(f"{sorted_groups[0]} vs {sorted_groups[1]}: {pairwise_pval:.3f}")
-                        except (ValueError, TypeError, IndexError):
-                            pass  # Skip this comparison if we can't get a valid p-value
-                
-                # Format marker with all significant comparisons
-                marker = ", ".join(comparisons) if comparisons else "-"  # NS = Not Significant
-            
-            # Store the marker for this site
-            site_data["marker"] = marker
-            
-            # Get beta values for each group
-            for group, idx in self._beta_idx_map.items():
-                try:
-                    site_data[f"beta_{group}"] = float(row[idx]) if idx >= 0 else None
+                    # Set CFEL marker based on beta value
+                    if beta is not None:
+                        if beta > 0:
+                            group_data['cfel_marker'] = '+'
+                        elif beta < 0:
+                            group_data['cfel_marker'] = '-'
+                        else:
+                            group_data['cfel_marker'] = '='
+                    else:
+                        group_data['cfel_marker'] = '?'
                 except (ValueError, TypeError, IndexError):
-                    site_data[f"beta_{group}"] = None
-            
-            # Get substitution counts for each group
-            for group, idx in self._subs_idx_map.items():
-                try:
-                    site_data[f"subs_{group}"] = float(row[idx]) if idx >= 0 else None
-                except (ValueError, TypeError, IndexError):
-                    site_data[f"subs_{group}"] = None
-            
-            # Check if site is conserved (nucleotide or amino acid)
-            try:
-                # Get beta values for all groups
-                beta_values = [float(row[idx]) for idx in self._beta_idx_map.values() if idx >= 0]
+                    group_data['cfel_marker'] = '?'
                 
-                # Nucleotide conservation: all beta values are 0
-                is_nt_conserved = all(beta == 0.0 for beta in beta_values) if beta_values else False
+                # Add group-specific N and T values
+                group_data['group_N'] = group_N_values.get(group, 0)
+                group_data['group_T'] = group_T_values.get(group, 0.0)
                 
-                # Amino acid conservation: synonymous substitutions only (beta = 0 but alpha might be > 0)
-                subs_values = [float(row[idx]) for idx in self._subs_idx_map.values() if idx >= 0]
-                has_subs = any(subs > 0 for subs in subs_values) if subs_values else False
-                is_aa_conserved = is_nt_conserved and has_subs
-                
-                site_data["nt_conserved"] = is_nt_conserved
-                site_data["aa_conserved"] = is_aa_conserved
-            except (IndexError, TypeError, ValueError):
-                site_data["nt_conserved"] = False
-                site_data["aa_conserved"] = False
+                site_comparison_data[group] = group_data
             
-            return site_data
+            comparison_data[site_id] = site_comparison_data
         
-        # Use the base helper to process site data
-        return self.process_site_mle_data(results, column_names, process_row)
-
+        return comparison_data
+        
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
-        return [
-            'nt_conserved',
-            'aa_conserved'
-        ]
+        # CFEL doesn't use standard summary fields
+        return []
         
     @staticmethod
     def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
+        # CFEL doesn't use standard site fields
+        return []
+        
+    @staticmethod
+    def get_comparison_group_site_fields() -> List[str]:
+        """Get list of site-specific fields that are specific to comparison groups."""
         return [
-            'cfel_marker',
-            'nt_conserved',
-            'aa_conserved'
+            'cfel_marker',  # CFEL marker for this site in this comparison group
+        ]
+        
+    @staticmethod
+    def get_comparison_group_summary_fields() -> List[str]:
+        """Get list of non-site-specific fields that are specific to comparison groups."""
+        return [
+            'group_N',              # Number of sequences in this comparison group
+            'group_T',              # Total branch length for this comparison group
+            'group_dN/dS',          # dN/dS ratio for this comparison group
+            'group_nt_conserved',   # Number of nucleotide conserved sites in this group
+            'group_aa_conserved'    # Number of amino acid conserved sites in this group
         ]
