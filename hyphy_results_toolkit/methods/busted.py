@@ -5,6 +5,7 @@ BUSTED (Branch-Site Unrestricted Statistical Test for Episodic Diversification) 
 from typing import Dict, Any, List
 
 from ..utils import tree_helpers
+from ..utils import sequence_utils as su
 from .base import HyPhyMethod
 
 class BustedMethod(HyPhyMethod):
@@ -92,12 +93,6 @@ class BustedMethod(HyPhyMethod):
         # Parse the tree
         internal_branches = {}
         tree = tree_helpers.newick_parser(results['input']['trees']['0'], {}, internal_branches)
-        
-        if tree['error'] is not None:
-            print(f"Error parsing tree: {tree['error']}")
-            return site_data
-            
-        tree = tree['json']
         
         # Process each site
         for site_idx, site_subs in substitutions.items():
@@ -208,8 +203,11 @@ class BustedMethod(HyPhyMethod):
         
         # If we pass all checks or no results provided, return the fields
         return [
-            'diff_majority_residue',
-            'unique_aa'
+            'unique_aas',
+            'has_diff_majority',
+            'aa_diversity',
+            'majority_residue',
+            'composition'
         ]
         
     def process_comparison_site_data(self, results: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
@@ -243,12 +241,6 @@ class BustedMethod(HyPhyMethod):
         internal_branches = {}
         tree = tree_helpers.newick_parser(results['input']['trees']['0'], {}, internal_branches)
         
-        if tree['error'] is not None:
-            print(f"Error parsing tree: {tree['error']}")
-            return comparison_data
-            
-        tree = tree['json']
-        
         # Process each site
         for site_idx, site_subs in substitutions.items():
             site_num = int(site_idx)
@@ -273,62 +265,48 @@ class BustedMethod(HyPhyMethod):
             # Initialize site comparison data
             site_comparison_data = {}
             
-            # Initialize unique amino acids and different majority residue
-            unique_aas_by_group = {}
-            diff_majority_residue = False
+            # Use sequence_utils to process the sequence data for this site
+            # Convert composition dict of Counters to the format expected by sequence_utils
+            group_sequences = {}
+            for group_name, aa_counter in composition.items():
+                if aa_counter:  # Only process non-empty counters
+                    group_sequences[group_name] = aa_counter
             
-            # For each group, compare against all others
-            for i, focal_group in enumerate(self._comparison_groups):
-                if focal_group in composition and composition[focal_group]:
-                    # Get all amino acids from focal group
-                    focal_aas = set(composition[focal_group].keys())
-                    
-                    # Get majority residue in focal group
-                    focal_sorted = sorted(
-                        [[aa, count] for aa, count in composition[focal_group].items()],
-                        key=lambda d: -d[1]
-                    )
-                    
-                    if focal_sorted:
-                        focal_majority = focal_sorted[0][0]
+            # Process sequence data using our improved function
+            if group_sequences:
+                site_metrics = su.process_sequence_data(group_sequences)
+                
+                # Add site metrics to comparison data for each group
+                for group_name in self._comparison_groups:
+                    if group_name in group_sequences:
+                        # Initialize group data if not exists
+                        if group_name not in site_comparison_data:
+                            site_comparison_data[group_name] = {}
+                            
+                        # Add metrics for this group
+                        site_comparison_data[group_name].update({
+                            'unique_aas': ','.join(site_metrics.get('unique_aas', {}).get(group_name, [])) or 'NA',
+                            'has_diff_majority': site_metrics.get('has_diff_majority', False),
+                            'aa_diversity': site_metrics.get(f'{group_name}_diversity', 0),
+                            'majority_residue': site_metrics.get(f'{group_name}_majority', '-')
+                        })
                         
-                        # Get all amino acids from other groups
-                        other_aas = set()
-                        for j, other_group in enumerate(self._comparison_groups):
-                            if i != j and other_group in composition:
-                                other_aas.update(composition[other_group].keys())
-                                
-                                # Check for different majority residue
-                                if composition[other_group]:
-                                    other_sorted = sorted(
-                                        [[aa, count] for aa, count in composition[other_group].items()],
-                                        key=lambda d: -d[1]
-                                    )
-                                    
-                                    if other_sorted and focal_majority != other_sorted[0][0]:
-                                        diff_majority_residue = True
-                        
-                        # Find unique amino acids for this group
-                        unique_aas = focal_aas - other_aas
-                        if unique_aas:
-                            unique_aas_by_group[focal_group] = ' '.join(sorted(unique_aas))
+                        # Add composition data
+                        if f'{group_name}_composition' in site_metrics:
+                            formatted_comp = su.format_composition(site_metrics[f'{group_name}_composition'])
+                            site_comparison_data[group_name]['composition'] = formatted_comp
             
-            # Format unique amino acids as a string
-            unique_aa_str = ''
-            if unique_aas_by_group:
-                unique_aa_parts = []
-                for group, aas in unique_aas_by_group.items():
-                    unique_aa_parts.append(f"{group}:{aas}")
-                unique_aa_str = ','.join(unique_aa_parts)
-            
-            # Add comparison group-specific data for each group
+            # Add comparison data for any groups that weren't processed
             for group in self._comparison_groups:
-                group_data = {
-                    'diff_majority_residue': diff_majority_residue,
-                    'unique_aa': unique_aa_str if unique_aa_str else 'NA'
-                }
-                site_comparison_data[group] = group_data
-            
+                if group not in site_comparison_data and group in composition and composition[group]:
+                    site_comparison_data[group] = {
+                        'unique_aas': 'NA',
+                        'has_diff_majority': False,
+                        'aa_diversity': 0,
+                        'majority_residue': '-',
+                        'composition': ''
+                    }
+                    
             # Only add sites with comparison data
             if site_comparison_data:
                 comparison_data[site_num] = site_comparison_data

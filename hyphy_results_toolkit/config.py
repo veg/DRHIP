@@ -49,8 +49,11 @@ COMPARISON_GROUPS_SITE_FIELDNAMES = [
     'gene',
     'site',
     'comparison_group',
-    'unique_aa',
-    'diff_majority_residue',
+    'unique_aas',
+    'has_diff_majority',
+    'aa_diversity',
+    'majority_residue',
+    'composition',
     'cfel_marker',
     'intensified_positive_selection'
 ]

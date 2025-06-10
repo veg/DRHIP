@@ -73,8 +73,14 @@ def newick_parser(nwk_str: str, bootstrap_values: bool, track_tags: Optional[Dic
         nonlocal current_node_attribute
         
         this_node = clade_stack.pop()
-        if (bootstrap_values and "children" in this_node):
-            this_node["bootstrap_values"] = current_node_name
+        if bootstrap_values:
+            # For the root node, set bootstrap_values at root level
+            if len(clade_stack) == 0:  # This is the root node
+                tree_json["bootstrap_values"] = current_node_name
+            elif "children" in this_node:  # For internal nodes
+                this_node["bootstrap_values"] = current_node_name
+            else:  # For leaf nodes
+                this_node["name"] = current_node_name
         else:
             this_node["name"] = current_node_name
         
@@ -90,10 +96,10 @@ def newick_parser(nwk_str: str, bootstrap_values: bool, track_tags: Optional[Dic
                     break
             else:
                 node_tag = "test"
-        
+            
             this_node["tag"] = node_tag
-        except Exception as e:
-            print(f"Exception {e}")
+        except Exception as exc:
+            print(f"Exception {exc}")
         
         if track_tags is not None:
             track_tags[this_node["name"]] = this_node["tag"]
@@ -105,8 +111,7 @@ def newick_parser(nwk_str: str, bootstrap_values: bool, track_tags: Optional[Dic
     def generate_error(location):
         return {
             'json': None,
-            'error':
-                f"Unexpected '{nwk_str[location]}' in '{nwk_str[location - 20 : location + 1]}[ERROR HERE]{nwk_str[location + 1 : location + 20]}'"
+            'error': f"Unexpected '{nwk_str[location]}' in '{nwk_str[location - 20 : location + 1]}[ERROR HERE]{nwk_str[location + 1 : location + 20]}'"
         }
 
     tree_json = {
@@ -115,7 +120,7 @@ def newick_parser(nwk_str: str, bootstrap_values: bool, track_tags: Optional[Dic
     
     clade_stack.append(tree_json)
 
-    space = re.compile("\s")
+    space = re.compile(r"\s")
 
     for char_index in range(len(nwk_str)):
         try:
@@ -136,7 +141,7 @@ def newick_parser(nwk_str: str, bootstrap_values: bool, track_tags: Optional[Dic
                         automaton_state = 1
                         if (current_char == ","):
                             add_new_tree_level()
-                    except Exception as e:
+                    except Exception:
                         return generate_error(char_index)
                     
                 elif (current_char == "("):
@@ -189,19 +194,19 @@ def newick_parser(nwk_str: str, bootstrap_values: bool, track_tags: Optional[Dic
                     if (current_char == "{"):
                         return generate_error(char_index)
                     current_node_annotation += current_char
-        except Exception as e:
+        except Exception:
             return generate_error(char_index)
 
     if (len(clade_stack) != 1):
         return generate_error(len(nwk_str) - 1)
 
     if (len(current_node_name)):
-        tree_json['name'] = current_node_name
+        if bootstrap_values and "children" in tree_json:
+            tree_json['bootstrap_values'] = current_node_name
+        else:
+            tree_json['name'] = current_node_name
 
-    return {
-        'json': tree_json,
-        'error': None
-    }
+    return tree_json
 
 def traverse_tree(node: Dict, parent: Optional[Dict], labels: Dict, labeler: Dict, 
                  composition: Dict, subs: Dict, leaf_label: Optional[str] = None) -> None:
@@ -217,13 +222,21 @@ def traverse_tree(node: Dict, parent: Optional[Dict], labels: Dict, labeler: Dic
         leaf_label: Label to use for leaf nodes
     """
     tag = labeler[node["name"]] if parent else None
+    
+    # Track parent-child relationships for substitution tracking
+    if parent and "tag" in parent and "tag" in node and parent["tag"] != node["tag"]:
+        transition_key = f"{parent['tag']}->{node['tag']}"
+        if transition_key not in subs:
+            subs[transition_key] = Counter()
+        # Add a dummy counter to ensure the transition is tracked
+        subs[transition_key]["transition"] = 1
 
     if node["name"] in labels:
         node["label"] = labels[node["name"]]  # what codon is present at the current node?
-        if parent:
+        if parent and parent["label"]:
             diff = 0
             for i, c in enumerate(node["label"]):
-                if c in nucs:
+                if c in nucs and i < len(parent["label"]):
                     if parent["label"][i] != c and parent["label"][i] in nucs:
                         diff += 1  # count number of substitutions between parent node and child node
                         
@@ -241,7 +254,7 @@ def traverse_tree(node: Dict, parent: Optional[Dict], labels: Dict, labeler: Dic
                 subs[tag][sub] += 1
                 
     else:
-        node["label"] = parent["label"]
+        node["label"] = parent["label"] if parent else ""
 
     if "children" not in node:
         tag = leaf_label if leaf_label else tag

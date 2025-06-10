@@ -15,13 +15,17 @@ from collections import Counter
 
 
 def get_majority_residue(composition: Dict[str, Counter]) -> str:
-    """Get the most frequent amino acid at a site.
+    """Get the most frequent amino acid at a site based on count data.
+    
+    This function identifies the amino acid with the highest count in the provided
+    composition dictionary. In case of ties, it returns the first one based on
+    sorting order.
     
     Args:
-        composition: Dictionary of amino acid counts at a site
+        composition: Dictionary mapping amino acids to their counts at a specific site
         
     Returns:
-        The most frequent amino acid or '-' if no data
+        The most frequent amino acid or '-' if the composition is empty
     """
     if not composition:
         return '-'
@@ -38,12 +42,18 @@ def get_majority_residue(composition: Dict[str, Counter]) -> str:
 def has_diff_majority_residue(focal_composition: Counter, other_compositions: List[Counter]) -> bool:
     """Check if the majority residue differs between the focal clade and any other clade.
     
+    This function compares the most common amino acid in the focal composition with
+    the most common amino acid in each of the other compositions. If any of them differ,
+    it returns True. This is useful for identifying sites where evolutionary pressures
+    may have caused different amino acids to dominate in different clades.
+    
     Args:
         focal_composition: Counter of amino acid frequencies in the focal clade
-        other_compositions: List of Counters for other clades
+        other_compositions: List of Counters for other clades to compare against
         
     Returns:
-        True if the majority residue differs, False otherwise
+        True if the majority residue in the focal clade differs from any other clade,
+        False if they all match or if either input is empty
     """
     if not focal_composition or not other_compositions:
         return False
@@ -134,14 +144,18 @@ def format_substitutions(substitutions: Counter) -> str:
 
 def get_site_composition(sequences: Dict[str, str], site_index: int) -> Dict[str, float]:
     """
-    Calculate the amino acid composition at a specific site.
+    Calculate the amino acid composition at a specific site across multiple sequences.
+    
+    This function extracts the residue at the specified site from each sequence,
+    counts the occurrences of each residue, and calculates their frequencies.
+    It's a fundamental function for analyzing site-specific evolutionary patterns.
     
     Args:
         sequences: Dictionary mapping sequence IDs to sequences
         site_index: Zero-based index of the site to analyze
         
     Returns:
-        Dictionary mapping amino acids to their frequency
+        Dictionary mapping amino acids to their frequency (values sum to 1.0)
     """
     # Extract the residue at the specified site from each sequence
     residues = [seq[site_index] for seq in sequences.values() if site_index < len(seq)]
@@ -156,32 +170,40 @@ def get_site_composition(sequences: Dict[str, str], site_index: int) -> Dict[str
     return frequencies
 
 
-def get_majority_residue_from_frequencies(composition: Dict[str, float]) -> str:
+def get_majority_residue_from_frequencies(frequencies: Dict[str, float]) -> str:
     """
-    Determine the majority residue from a composition dictionary with frequencies.
+    Get the majority residue from a frequency dictionary.
+    
+    Similar to get_majority_residue but works with frequency data (0.0-1.0) rather than
+    raw counts. This function is particularly useful when working with normalized data
+    or when comparing compositions across different sample sizes.
     
     Args:
-        composition: Dictionary mapping residues to their frequencies
+        frequencies: Dictionary mapping residues to their frequencies (values between 0.0 and 1.0)
         
     Returns:
-        The most common residue
+        The residue with the highest frequency or '-' if the dictionary is empty
     """
-    if not composition:
+    if not frequencies:
         return "-"
     
     # Find the residue with the highest frequency
-    return max(composition.items(), key=lambda x: x[1])[0]
+    return max(frequencies.items(), key=lambda x: x[1])[0]
 
 
 def get_unique_aa_count(composition: Dict[str, float]) -> int:
     """
-    Count the number of unique amino acids at a site.
+    Count the number of unique amino acids in a composition.
+    
+    This function simply returns the number of different amino acids present at a site,
+    regardless of their frequencies. It's a useful metric for measuring site diversity
+    and can indicate sites under different types of selection pressure.
     
     Args:
-        composition: Dictionary mapping residues to their frequencies
+        composition: Dictionary mapping amino acids to their frequencies
         
     Returns:
-        Number of unique amino acids
+        Number of unique amino acids (integer count of dictionary keys)
     """
     # Count residues with non-zero frequency
     return len([aa for aa, freq in composition.items() if freq > 0])
@@ -192,15 +214,24 @@ def compare_majority_residues(reference_composition: Dict[str, float],
     """
     Compare majority residues between reference and target compositions.
     
+    Unlike has_diff_majority_residue which works with multiple compositions,
+    this function performs a direct one-to-one comparison between two frequency
+    dictionaries. It uses get_majority_residue_from_frequencies to extract the
+    majority residue from each composition.
+    
     Args:
         reference_composition: Dictionary mapping residues to frequencies in reference group
         target_composition: Dictionary mapping residues to frequencies in target group
         
     Returns:
-        True if majority residues are different, False otherwise
+        True if majority residues are different, False if they match or if either input is empty
     """
-    ref_majority = get_majority_residue(reference_composition)
-    target_majority = get_majority_residue(target_composition)
+    # If either composition is empty, return False
+    if not reference_composition or not target_composition:
+        return False
+        
+    ref_majority = get_majority_residue_from_frequencies(reference_composition)
+    target_majority = get_majority_residue_from_frequencies(target_composition)
     
     return ref_majority != target_majority
 
@@ -208,14 +239,24 @@ def compare_majority_residues(reference_composition: Dict[str, float],
 def process_sequence_data(sequences_by_group: Dict[str, Dict[str, str]], 
                          sites: List[int]) -> Dict[int, Dict[str, any]]:
     """
-    Process sequence data to extract site-specific metrics.
+    Process sequence data to extract site-specific metrics across different groups.
+    
+    This function analyzes sequence data organized by groups (e.g., different viral strains
+    or evolutionary clades) and calculates various metrics for each specified site, including:
+    - Composition of amino acids for each group
+    - Overall majority residue across all sequences
+    - Count of unique amino acids at the site
+    - Whether the majority residue differs between the reference group and other groups
+    
+    The first group in sequences_by_group is considered the reference group for comparisons.
     
     Args:
-        sequences_by_group: Dictionary mapping group names to sequence dictionaries
-        sites: List of site indices to process
+        sequences_by_group: Dictionary mapping group names to dictionaries of sequence IDs and sequences
+        sites: List of site indices to process (zero-based)
         
     Returns:
-        Dictionary mapping site indices to dictionaries of site-specific metrics
+        Dictionary mapping site indices to dictionaries containing site-specific metrics
+        including group-specific compositions and comparison results
     """
     result = {}
     
@@ -229,6 +270,8 @@ def process_sequence_data(sequences_by_group: Dict[str, Dict[str, str]],
         compositions = {}
         for group, sequences in sequences_by_group.items():
             compositions[group] = get_site_composition(sequences, site)
+            # Add group-specific composition to site data
+            site_data[f'{group}_composition'] = compositions[group]
         
         # Calculate overall composition (combine all groups)
         all_sequences = {}

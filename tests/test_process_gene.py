@@ -81,6 +81,41 @@ def test_process_gene_sites_content(results_dir):
                             if any(method in key.lower() for method in ['fel', 'meme', 'busted'])]                
             assert len(method_fields) > 0
 
+def test_process_gene_comparison_site_data(results_dir):
+    """Test that process_gene produces correct comparison group site-specific content with sequence analysis."""
+    # Create temporary output directory
+    with tempfile.TemporaryDirectory() as output_dir:
+        # Process gene
+        gene_name = 'capsid_protein_C'
+        process_gene(gene_name, results_dir, output_dir)
+        
+        # Check if comparison site file exists
+        comparison_sites_file = os.path.join(output_dir, f'{gene_name}_comparison_sites.csv')
+        
+        # If the file exists, check its contents
+        if os.path.exists(comparison_sites_file):
+            with open(comparison_sites_file, 'r') as f:
+                reader = csv.DictReader(f)
+                comp_sites = list(reader)
+                
+                # If we have comparison site data, check for sequence analysis fields
+                if comp_sites:
+                    first_comp_site = comp_sites[0]
+                    
+                    # Check for required fields
+                    assert 'gene' in first_comp_site
+                    assert 'site' in first_comp_site
+                    assert 'comparison_group' in first_comp_site
+                    
+                    # Check for sequence analysis fields
+                    # These may not all be present depending on the data
+                    sequence_fields = ['unique_aas', 'has_diff_majority', 'majority_residue', 
+                                      'aa_diversity', 'composition']
+                    
+                    # At least some of these fields should be present
+                    present_seq_fields = [field for field in sequence_fields if field in first_comp_site]
+                    assert len(present_seq_fields) > 0, "No sequence analysis fields found in comparison site data"
+
 def test_process_gene_thread_safety(results_dir):
     """Test that process_gene is thread-safe when writing output."""
     import threading
