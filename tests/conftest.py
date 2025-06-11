@@ -13,6 +13,11 @@ def results_dir() -> str:
     """Get the path to the HyPhy results directory for tests."""
     return str(Path(__file__).parent / 'data' / 'hyphy')
 
+@pytest.fixture
+def comparison_results_dir() -> str:
+    """Get the path to the HyPhy comparison results directory for tests."""
+    return str(Path(__file__).parent / 'data' / 'hyphy-comparisons')
+
 # Fixtures for real HyPhy test data
 @pytest.fixture
 def real_data_dir() -> str:

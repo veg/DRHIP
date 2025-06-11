@@ -81,40 +81,61 @@ def test_process_gene_sites_content(results_dir):
                             if any(method in key.lower() for method in ['fel', 'meme', 'busted'])]                
             assert len(method_fields) > 0
 
-def test_process_gene_comparison_site_data(results_dir):
-    """Test that process_gene produces correct comparison group site-specific content with sequence analysis."""
+def test_process_gene_comparison_data(comparison_results_dir):
+    """Test that process_gene produces correct comparison group data with the comparison test dataset."""
     # Create temporary output directory
     with tempfile.TemporaryDirectory() as output_dir:
-        # Process gene
-        gene_name = 'capsid_protein_C'
-        process_gene(gene_name, results_dir, output_dir)
+        # Process gene - use the full gene name as it appears in the comparison test data files
+        gene_name = 'pretend_DENV1_ref.part_NC_001477.1__capsid_protein_C__95-394_DENV1'
+        process_gene(gene_name, comparison_results_dir, output_dir)
         
-        # Check if comparison site file exists
-        comparison_sites_file = os.path.join(output_dir, f'{gene_name}_comparison_sites.csv')
+        # Check that standard output files exist
+        assert os.path.exists(os.path.join(output_dir, f'{gene_name}_summary.csv'))
+        assert os.path.exists(os.path.join(output_dir, f'{gene_name}_sites.csv'))
         
-        # If the file exists, check its contents
-        if os.path.exists(comparison_sites_file):
-            with open(comparison_sites_file, 'r') as f:
-                reader = csv.DictReader(f)
-                comp_sites = list(reader)
-                
-                # If we have comparison site data, check for sequence analysis fields
-                if comp_sites:
-                    first_comp_site = comp_sites[0]
-                    
-                    # Check for required fields
-                    assert 'gene' in first_comp_site
-                    assert 'site' in first_comp_site
-                    assert 'comparison_group' in first_comp_site
-                    
-                    # Check for sequence analysis fields
-                    # These may not all be present depending on the data
-                    sequence_fields = ['unique_aas', 'has_diff_majority', 'majority_residue', 
-                                      'aa_diversity', 'composition']
-                    
-                    # At least some of these fields should be present
-                    present_seq_fields = [field for field in sequence_fields if field in first_comp_site]
-                    assert len(present_seq_fields) > 0, "No sequence analysis fields found in comparison site data"
+        # Check that comparison-specific output files exist
+        comparison_site_file = os.path.join(output_dir, f'{gene_name}_comparison_site.csv')
+        comparison_summary_file = os.path.join(output_dir, f'{gene_name}_comparison_summary.csv')
+        
+        assert os.path.exists(comparison_site_file), "Comparison site file not created"
+        assert os.path.exists(comparison_summary_file), "Comparison summary file not created"
+        
+        # Validate comparison site file contents
+        with open(comparison_site_file, 'r') as f:
+            reader = csv.DictReader(f)
+            comp_sites = list(reader)
+            
+            # Check that we have site data
+            assert len(comp_sites) > 0, "No comparison site data found"
+            
+            # Check the first site for required fields
+            first_comp_site = comp_sites[0]
+            assert 'gene' in first_comp_site
+            assert 'site' in first_comp_site
+            assert 'comparison_group' in first_comp_site
+            
+            # Check for method-specific fields from CONTRASTFEL or RELAX
+            method_fields = [key for key in first_comp_site.keys() 
+                           if any(method in key.lower() for method in ['cfel', 'relax'])]
+            assert len(method_fields) > 0, "No method-specific fields found in comparison site data"
+        
+        # Validate comparison summary file contents
+        with open(comparison_summary_file, 'r') as f:
+            reader = csv.DictReader(f)
+            comp_summaries = list(reader)
+            
+            # Check that we have summary data
+            assert len(comp_summaries) > 0, "No comparison summary data found"
+            
+            # Check the first summary for required fields
+            first_comp_summary = comp_summaries[0]
+            assert 'gene' in first_comp_summary
+            assert 'comparison_group' in first_comp_summary
+            
+            # Check for method-specific fields from CONTRASTFEL or RELAX
+            method_fields = [key for key in first_comp_summary.keys() 
+                           if any(method in key.lower() for method in ['cfel', 'relax'])]
+            assert len(method_fields) > 0, "No method-specific fields found in comparison summary data"
 
 def test_process_gene_thread_safety(results_dir):
     """Test that process_gene is thread-safe when writing output."""

@@ -29,7 +29,12 @@ def combine_csv_files(temp_dir: str, output_dir: str, file_suffix: str) -> None:
     # Find all files with the given suffix
     files_to_combine = []
     for file in os.listdir(temp_dir):
-        if file.endswith(f"_{file_suffix}.csv"):
+        # Make sure we're only matching the exact suffix pattern
+        # This prevents comparison_summary files from matching when looking for summary files
+        if file.endswith(f"_{file_suffix}.csv") and not (
+            file_suffix == "summary" and "_comparison_summary.csv" in file or
+            file_suffix == "sites" and "_comparison_site.csv" in file
+        ):
             files_to_combine.append(os.path.join(temp_dir, file))
     
     if not files_to_combine:
@@ -50,7 +55,8 @@ def combine_csv_files(temp_dir: str, output_dir: str, file_suffix: str) -> None:
     
     # Ensure 'gene' is the first column for summary files
     # For sites files, ensure 'gene' and 'site' are the first two columns
-    # For comparison files, ensure 'gene', 'site', and 'comparison_group' are the first three columns
+    # For comparison_site files, ensure 'gene', 'site', and 'comparison_group' are the first three columns
+    # For comparison_summary files, ensure 'gene' and 'comparison_group' are the first two columns
     ordered_fieldnames = []
     if file_suffix == 'summary':
         ordered_fieldnames = ['gene']
@@ -62,10 +68,15 @@ def combine_csv_files(temp_dir: str, output_dir: str, file_suffix: str) -> None:
         for field in all_fieldnames:
             if field not in ['gene', 'site']:
                 ordered_fieldnames.append(field)
-    elif file_suffix == 'comparison':
+    elif file_suffix == 'comparison_site':
         ordered_fieldnames = ['gene', 'site', 'comparison_group']
         for field in all_fieldnames:
             if field not in ['gene', 'site', 'comparison_group']:
+                ordered_fieldnames.append(field)
+    elif file_suffix == 'comparison_summary':
+        ordered_fieldnames = ['gene', 'comparison_group']
+        for field in all_fieldnames:
+            if field not in ['gene', 'comparison_group']:
                 ordered_fieldnames.append(field)
     
     # Create the combined output file
@@ -147,7 +158,8 @@ def main():
         print("Combining gene-specific results into unified files...")
         combine_csv_files(temp_dir, output_dir, "summary")
         combine_csv_files(temp_dir, output_dir, "sites")
-        combine_csv_files(temp_dir, output_dir, "comparison")
+        combine_csv_files(temp_dir, output_dir, "comparison_site")
+        combine_csv_files(temp_dir, output_dir, "comparison_summary")
 
 
 if __name__ == "__main__":

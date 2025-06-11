@@ -14,7 +14,7 @@ class RelaxMethod(HyPhyMethod):
         super().__init__("RELAX", "RELAX.json")
         self._comparison_groups = None
     
-    def process_comparison_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process RELAX results.
         
         Args:
@@ -37,11 +37,6 @@ class RelaxMethod(HyPhyMethod):
                 'RELAX_overall_pval': 'NA',
                 'RELAX_K': 'NA'
             }
-            
-            # Add NA for all group-specific fields
-            for group in self._comparison_groups:
-                processed[f'RELAX_K_{group}'] = 'NA'
-                
             return processed
         
         test_results = results['test results']
@@ -50,22 +45,18 @@ class RelaxMethod(HyPhyMethod):
             'RELAX_K': test_results['relaxation or intensification parameter']  # Overall K parameter
         }
         
-        # Extract group-specific K parameter values if available
-        if isinstance(test_results['relaxation or intensification parameter'], dict):
-            # For each comparison group, extract its K parameter value
-            for group in self._comparison_groups:
-                if group in test_results['relaxation or intensification parameter']:
-                    processed[f'RELAX_K_{group}'] = test_results['relaxation or intensification parameter'][group]
-        
+        # Group-specific K values are now handled in process_comparison_data
         return processed
     
-    def get_comparison_group_summary_fields(self) -> List[str]:
+    def get_summary_fields(self) -> List[str]:
         """Get list of summary fields produced by this method.
         
         Raises:
             ValueError: If comparison groups are not set
         """
         # Ensure comparison groups are set
+        # RELAX only makes sense to run if comparing groups of branches...
+        # but the fields produced are not comparison group-specific
         if not self._comparison_groups:
             raise ValueError("Comparison groups must be set before getting summary fields")
             
@@ -73,10 +64,6 @@ class RelaxMethod(HyPhyMethod):
             'RELAX_overall_pval',
             'RELAX_K'
         ]
-        
-        # Add group-specific fields
-        for group in self._comparison_groups:
-            base_fields.append(f'RELAX_K_{group}')
             
         return base_fields
         
@@ -86,17 +73,17 @@ class RelaxMethod(HyPhyMethod):
         return []  # RELAX doesn't have site-specific fields
 
     @staticmethod
-    def get_summary_fields() -> List[str]:
+    def get_comparison_group_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
-        return []  # RELAX doesn't have summary fields
+        return []  # RELAX doesn't have comparison group summary fields
         
     @staticmethod
     def get_comparison_group_site_fields() -> List[str]:
         """Get list of fields that are specific to comparison groups."""
         return []  # RELAX doesn't have comparison group-specific site fields
         
-    def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """Process RELAX results.
+    def process_comparison_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Process comparison group-specific data from RELAX results.
         
         Args:
             results: Raw RELAX results dictionary

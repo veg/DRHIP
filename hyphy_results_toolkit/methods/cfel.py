@@ -11,8 +11,8 @@ class CfelMethod(HyPhyMethod):
     
     def __init__(self):
         """Initialize CFEL method."""
-        # CFEL files are named as gene.CFEL.json in the contrastFEL directory
-        super().__init__("CFEL", "CFEL.json")
+        # CFEL files are named as gene.CONTRASTFEL.json in the CONTRASTFEL directory
+        super().__init__("CFEL", "CONTRASTFEL.json")
         self._header_map = {}
         self._beta_idx_map = {}
         self._subs_idx_map = {}
@@ -40,17 +40,17 @@ class CfelMethod(HyPhyMethod):
         
         # Find column indices for beta and substitution values
         for header_name, idx in header_indices.items():
-            if '\u03b2' in header_name:
+            if 'beta' in header_name.lower():
                 # Extract group name from column header
                 import re
-                match = re.search(r'\u03b2\s*\(([^)]+)\)', header_name)
+                match = re.search(r'beta\s*\(([^)]+)\)', header_name)
                 if match:
                     group = match.group(1)
                     if group in comparison_groups:
                         self._beta_idx_map[group] = idx
-            elif 'substitutions' in header_name.lower():
+            elif 'subs' in header_name.lower():
                 # Extract group name from substitutions column
-                match = re.search(r'substitutions\s*\(([^)]+)\)', header_name, re.IGNORECASE)
+                match = re.search(r'subs\s*\(([^)]+)\)', header_name, re.IGNORECASE)
                 if match:
                     group = match.group(1)
                     if group in comparison_groups:
@@ -196,44 +196,21 @@ class CfelMethod(HyPhyMethod):
         """
         # Skip processing if no MLE content or headers or no comparison groups
         if not self.has_mle_content(results) or not self.has_mle_headers(results) or not self._comparison_groups:
+            print("Skipping CFEL comparison site data processing due to missing data")
             return {}
             
         # Get MLE content
         mle_content = results['MLE']['content']
+
+        self._build_column_maps(results, list(self._comparison_groups))
         
-        # Set up index maps for beta and substitution values by group if not already done
-        if not hasattr(self, '_beta_idx_map') or not self._beta_idx_map:
-            # Get header indices using base helper method
-            header_indices = self.get_header_indices(results)
-            self._beta_idx_map = {}
-            self._subs_idx_map = {}
-            
-            # Find column indices for beta and substitution values
-            for header_name, idx in header_indices.items():
-                if '\u03b2' in header_name:
-                    # Extract group name from column header (e.g., '\u03b2 (foreground)' -> 'foreground')
-                    import re
-                    match = re.search(r'\u03b2\s*\(([^)]+)\)', header_name)
-                    if match:
-                        group = match.group(1)
-                        self._beta_idx_map[group] = idx
-                elif 'substitutions' in header_name.lower():
-                    # Extract group name from substitutions column
-                    match = re.search(r'substitutions\s*\(([^)]+)\)', header_name, re.IGNORECASE)
-                    if match:
-                        group = match.group(1)
-                        self._subs_idx_map[group] = idx
-        
-        # Initialize result dictionary
-        comparison_data = {}
+        # Find column indices for beta values by group
+        beta_idx_map = self._beta_idx_map
+        subs_idx_map = self._subs_idx_map
         
         # Get branch information for calculating N and T values
         tested = results.get('tested', {}).get('0', {})
-        by_type: Dict[str, List[str]] = {}
-        
-        # Initialize by_type with empty lists for each comparison group
-        for group in self._comparison_groups:
-            by_type[group] = []
+        by_type = {group: [] for group in self._comparison_groups}
         
         # Assign branches to the appropriate groups
         for branch, tag in tested.items():
@@ -255,43 +232,43 @@ class CfelMethod(HyPhyMethod):
             except (KeyError, TypeError):
                 group_T_values[group] = 0.0
         
-        # Process each site in the MLE content
-        for site_id, site_content in mle_content.items():
-            if site_id == '0':  # Skip header row
-                continue
-                
-            row = site_content['value']
-            site_comparison_data = {}
+        # Initialize result dictionary
+        comparison_data = {}
+        
+        # Process site data - in CONTRASTFEL format, '0' contains a list of rows
+        if '0' in mle_content and isinstance(mle_content['0'], list):
+            rows = mle_content['0']
             
-            # Process data for each comparison group
-            for group in self._comparison_groups:
-                group_data = {}
+            # Each row represents a site
+            for site_idx, row in enumerate(rows):
+                site_id = str(site_idx + 1)  # Convert to 1-based site index as string
+                site_comparison_data = {}
                 
-                # Add CFEL marker for this group
-                try:
-                    beta_idx = self._beta_idx_map.get(group, -1)
-                    beta = float(row[beta_idx]) if beta_idx >= 0 else None
+                # Process data for each comparison group
+                for group in self._comparison_groups:
+                    group_data = {}
                     
-                    # Set CFEL marker based on beta value
-                    if beta is not None:
-                        if beta > 0:
-                            group_data['cfel_marker'] = '+'
-                        elif beta < 0:
-                            group_data['cfel_marker'] = '-'
+                    # Add CFEL marker for this group
+                    try:
+                        beta_idx = beta_idx_map.get(group, -1)
+                        if beta_idx >= 0 and beta_idx < len(row):
+                            beta = float(row[beta_idx])
+                            
+                            # Set CFEL marker based on beta value
+                            if beta > 0:
+                                group_data['cfel_marker'] = '+'
+                            elif beta < 0:
+                                group_data['cfel_marker'] = '-'
+                            else:
+                                group_data['cfel_marker'] = '='
                         else:
-                            group_data['cfel_marker'] = '='
-                    else:
+                            group_data['cfel_marker'] = '?'
+                    except (ValueError, TypeError, IndexError):
                         group_data['cfel_marker'] = '?'
-                except (ValueError, TypeError, IndexError):
-                    group_data['cfel_marker'] = '?'
+                    
+                    site_comparison_data[group] = group_data
                 
-                # Add group-specific N and T values
-                group_data['group_N'] = group_N_values.get(group, 0)
-                group_data['group_T'] = group_T_values.get(group, 0.0)
-                
-                site_comparison_data[group] = group_data
-            
-            comparison_data[site_id] = site_comparison_data
+                comparison_data[site_id] = site_comparison_data
         
         return comparison_data
         

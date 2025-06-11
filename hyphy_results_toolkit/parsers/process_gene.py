@@ -92,7 +92,8 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     comparison_groups, groups_by_method = detect_comparison_groups(
         method_results, 
         default_groups=DEFAULT_COMPARISON_GROUPS,
-        methods_to_check=['CFEL', 'RELAX']  # Can be extended with other methods in the future
+        methods_to_check=['CFEL', 'RELAX'],  # Can be extended with other methods in the future
+        gene_name=gene
     )
         
     # Make detected comparison groups available to methods

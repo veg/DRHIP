@@ -180,7 +180,8 @@ def validate_fields(
 def detect_comparison_groups(
     method_results: Dict[str, Dict[str, Any]],
     default_groups: Optional[List[str]] = None,
-    methods_to_check: Optional[List[str]] = None
+    methods_to_check: Optional[List[str]] = None,
+    gene_name: Optional[str] = None
 ) -> Tuple[List[str], Dict[str, List[str]]]:
     """Detect comparison groups from method results.
     
@@ -218,7 +219,8 @@ def detect_comparison_groups(
             
             if detected_groups:
                 groups = list(detected_groups)
-                print(f"Detected comparison groups from CFEL results: {', '.join(groups)}")
+                gene_info = f" for {gene_name}" if gene_name else ""
+                print(f"Detected comparison groups from CFEL results{gene_info}: {', '.join(groups)}")
                 return groups
         return []
     
@@ -229,7 +231,8 @@ def detect_comparison_groups(
             if isinstance(relax_k, dict):
                 detected_groups = [k for k in relax_k.keys() if k != 'overall']
                 if detected_groups:
-                    print(f"Detected comparison groups from RELAX results: {', '.join(detected_groups)}")
+                    gene_info = f" for {gene_name}" if gene_name else ""
+                    print(f"Detected comparison groups from RELAX results{gene_info}: {', '.join(detected_groups)}")
                     return detected_groups
         return []
     
@@ -256,7 +259,8 @@ def detect_comparison_groups(
         # No groups detected, use defaults
         if default_groups:
             comparison_groups = default_groups.copy()
-            print(f"Using default comparison groups: {', '.join(default_groups)}")
+            gene_info = f" for {gene_name}" if gene_name else ""
+            print(f"Using default comparison groups{gene_info}: {', '.join(default_groups)}")
         else:
             comparison_groups = []
         return comparison_groups, detected_by_method
@@ -281,7 +285,8 @@ def detect_comparison_groups(
             print(error_msg)
             raise ValueError(error_msg)
         else:
-            print(f"Comparison groups are consistent between {first_method} and {method} methods")
+            gene_info = f" for {gene_name}" if gene_name else ""
+            print(f"Comparison groups are consistent{gene_info} between {first_method} and {method} methods")
     
     # All groups are consistent, use the first one (arbitrary choice)
     return first_groups, detected_by_method

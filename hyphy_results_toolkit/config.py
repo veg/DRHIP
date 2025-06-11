@@ -9,7 +9,7 @@ DEFAULT_COMPARISON_GROUPS = ['foreground', 'background']
 METHOD_PATHS = {
     'BUSTED': 'BUSTED',
     'RELAX': 'RELAX',
-    'CFEL': 'contrastFEL',
+    'CFEL': 'CONTRASTFEL',
     'FEL': 'FEL',
     'MEME': 'MEME',
     'PRIME': 'PRIME'
@@ -24,6 +24,8 @@ SUMMARY_FIELDNAMES = [
     'dN/dS',  # Overall dN/dS ratio
     'sites',  # Number of sites
     'diff_sites',
+    'RELAX_K',
+    'RELAX_overall_pval'
 ]
 
 SITES_FIELDNAMES = [
