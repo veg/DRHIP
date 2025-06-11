@@ -99,24 +99,24 @@ def test_combine_csv_files_comparison():
     with tempfile.TemporaryDirectory() as temp_dir:
         with tempfile.TemporaryDirectory() as output_dir:
             # Create test CSV files
-            gene1_file = os.path.join(temp_dir, "gene1_comparison.csv")
+            gene1_file = os.path.join(temp_dir, "gene1_comparison_site.csv")
             with open(gene1_file, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(['gene', 'site', 'comparison_group', 'cfel_marker', 'group_N'])
                 writer.writerow(['gene1', '1', 'foreground', '+', '5'])
                 writer.writerow(['gene1', '1', 'background', '-', '3'])
             
-            gene2_file = os.path.join(temp_dir, "gene2_comparison.csv")
+            gene2_file = os.path.join(temp_dir, "gene2_comparison_site.csv")
             with open(gene2_file, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(['gene', 'site', 'comparison_group', 'group_T', 'group_dN/dS'])
                 writer.writerow(['gene2', '1', 'foreground', '0.5', '1.2'])
             
             # Test the combine function
-            combine_csv_files(temp_dir, output_dir, "comparison")
+            combine_csv_files(temp_dir, output_dir, "comparison_site")
             
             # Verify results
-            output_file = os.path.join(output_dir, "combined_comparison.csv")
+            output_file = os.path.join(output_dir, "combined_comparison_site.csv")
             assert os.path.exists(output_file)
             
             # Check combined file content
@@ -188,10 +188,11 @@ def test_main_workflow(mock_combine, mock_get_genes, mock_process_gene):
                 mock_process_gene.assert_any_call('gene2', input_dir, mock_combine.call_args[0][0])
                 
                 # Verify combine_csv_files was called for each file type
-                assert mock_combine.call_count == 3
+                assert mock_combine.call_count == 4
                 mock_combine.assert_any_call(mock_combine.call_args[0][0], output_dir, "summary")
                 mock_combine.assert_any_call(mock_combine.call_args[0][0], output_dir, "sites")
-                mock_combine.assert_any_call(mock_combine.call_args[0][0], output_dir, "comparison")
+                mock_combine.assert_any_call(mock_combine.call_args[0][0], output_dir, "comparison_site")
+                mock_combine.assert_any_call(mock_combine.call_args[0][0], output_dir, "comparison_summary")
 
 
 @patch('hyphy_results_toolkit.cli.process_gene.process_gene')

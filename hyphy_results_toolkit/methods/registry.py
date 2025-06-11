@@ -64,9 +64,15 @@ class HyPhyMethodRegistry:
             List of all summary field names
         """
         fields = set()
-        for method in self._methods.values():
+        for method_name, method in self._methods.items():
             if hasattr(method, 'get_summary_fields'):
-                fields.update(method.get_summary_fields())
+                try:
+                    # For RELAX, only include fields if comparison groups are set
+                    fields.update(method.get_summary_fields())
+                except ValueError:
+                    # Skip methods that require comparison groups but don't have them set
+                    # This is expected for RELAX when comparison groups aren't available
+                    pass
         return sorted(list(fields))
     
     def get_all_site_fields(self) -> List[str]:
@@ -77,10 +83,26 @@ class HyPhyMethodRegistry:
                 fields.update(method.get_site_fields())
         return sorted(list(fields))
         
-    def get_all_comparison_group_fields(self) -> List[str]:
+    def get_all_comparison_group_summary_fields(self) -> List[str]:
         """Get all comparison group-specific fields from all registered methods."""
         fields = set()
-        for method in self._methods.values():
+        for method_name, method in self._methods.items():
             if hasattr(method, 'get_comparison_group_fields'):
-                fields.update(method.get_comparison_group_fields())
+                try:
+                    fields.update(method.get_comparison_group_fields())
+                except ValueError:
+                    # Skip methods that require comparison groups but don't have them set
+                    pass
+        return sorted(list(fields))
+
+    def get_all_comparison_group_site_fields(self) -> List[str]:
+        """Get all comparison group-specific site fields from all registered methods."""
+        fields = set()
+        for method_name, method in self._methods.items():
+            if hasattr(method, 'get_comparison_group_site_fields'):
+                try:
+                    fields.update(method.get_comparison_group_site_fields())
+                except ValueError:
+                    # Skip methods that require comparison groups but don't have them set
+                    pass
         return sorted(list(fields))

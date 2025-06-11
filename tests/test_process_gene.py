@@ -132,10 +132,11 @@ def test_process_gene_comparison_data(comparison_results_dir):
             assert 'gene' in first_comp_summary
             assert 'comparison_group' in first_comp_summary
             
-            # Check for method-specific fields from CONTRASTFEL or RELAX
-            method_fields = [key for key in first_comp_summary.keys() 
-                           if any(method in key.lower() for method in ['cfel', 'relax'])]
-            assert len(method_fields) > 0, "No method-specific fields found in comparison summary data"
+            # Check for expected comparison group fields from CFEL
+            expected_fields = ['group_N', 'group_T', 'group_dN/dS']
+            found_fields = [field for field in expected_fields if field in first_comp_summary]
+            print(f"Found comparison group fields: {found_fields}")
+            assert len(found_fields) > 0, "No expected comparison group fields found in comparison summary data"
 
 def test_process_gene_thread_safety(results_dir):
     """Test that process_gene is thread-safe when writing output."""
