@@ -66,6 +66,17 @@ The toolkit produces combined files that aggregate data across all genes:
   - Substitution counts
   - Conservation status
 
+- **combined_comparison_summary.csv**: Comparison group-specific summary statistics (when comparison groups are present):
+  - Group sizes (N)
+  - Total branch lengths (T)
+  - Group-specific dN/dS ratios
+  - Conservation metrics per group
+
+- **combined_comparison_site.csv**: Comparison group-specific site analysis (when comparison groups are present):
+  - Site-specific metrics for each comparison group
+  - Conservation markers
+  - Group-specific selection indicators
+
 The combined files automatically include the superset of all fields found across all genes, with missing values marked as 'NA'. This makes it easy to analyze patterns across the entire dataset.
 
 ### Data Representation
@@ -167,20 +178,36 @@ self.register(NewMethod())
 
 ### Comparison Groups Detection
 
-The toolkit automatically detects comparison groups (e.g., foreground vs. background) from the results:
+Comparison groups represent different sets of branches in the phylogenetic tree (e.g., 'foreground' vs 'background', or 'test' vs 'reference') that are being compared for evolutionary selection differences:
 
-1. **Detection logic** is in `utils/result_helpers.py`:
-   - `detect_comparison_groups()` extracts groups from CFEL and RELAX results
-   - Falls back to default groups if none are detected
+1. **What are comparison groups**: 
+   - Groups of branches in the phylogenetic tree labeled for comparative analysis
+   - Used by methods like CFEL and RELAX to compare selection pressures between different lineages
+   - Typically labeled as 'test'/'reference', 'foreground'/'background', or custom labels
 
-2. **Adding detection for a new method**:
+2. **Detection logic** is in `utils/result_helpers.py`:
+   - `detect_comparison_groups()` attempts to extract group labels from CFEL and RELAX results files
+   - The toolkit examines these results to find branch labels assigned to different groups
+   - Falls back to default groups ('test'/'reference') if no explicit labels are detected
+
+3. **Adding detection for a new method**:
    - Add a detection function in `detect_comparison_groups()`
    - Add your method to the `detection_functions` dictionary
    - Add your method to the `methods_to_check` list
 
-3. **Consistency validation**:
+4. **Consistency validation**:
    - The toolkit ensures that groups are consistent across methods
    - Raises an error if inconsistent groups are detected
+
+5. **Method-specific requirements**:
+   - Some methods (like RELAX) require comparison groups to be set before returning fields
+   - The toolkit gracefully handles these requirements with proper error handling
+   - If a method can't provide fields without comparison groups, those fields are skipped
+
+6. **CSV combining logic**:
+   - The toolkit combines CSV files with similar suffixes across all genes
+   - Handles various output types: summary, sites, comparison_summary, comparison_site, and comparison
+   - Ensures proper field ordering for each output type
 
 ## Development and Testing
 
