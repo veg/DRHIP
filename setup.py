@@ -10,9 +10,9 @@ with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 version = '0.1.0'
 
 setup(
-    name="hyphy-results-toolkit",  # Use hyphen for PyPI name
+    name="drhip",  # DRHIP: Data Reduction for HyPhy with Inference Processing
     version=version,
-    packages=find_packages(include=['hyphy_results_toolkit', 'hyphy_results_toolkit.*']),
+    packages=find_packages(include=['drhip', 'drhip.*']),
     install_requires=[
         "numpy>=1.20.0",
         "pandas>=1.3.0",
@@ -26,18 +26,18 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'hyphy-results=hyphy_results_toolkit.cli:main',
+            'drhip=drhip.cli:main',
         ],
     },
     author="Danielle Callan, Hannah Verdonk, Sergei L Kosakovsky Pond",
     author_email="spond@temple.edu",
-    description="A toolkit for analyzing and summarizing HyPhy evolutionary selection analysis results",
+    description="DRHIP: Data Reduction for HyPhy with Inference Processing - A toolkit for analyzing and summarizing HyPhy evolutionary selection analysis results",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/veg/hyphy-results-toolkit",
+    url="https://github.com/veg/drhip",
     project_urls={
-        'Bug Reports': 'https://github.com/veg/hyphy-results-toolkit/issues',
-        'Source': 'https://github.com/veg/hyphy-results-toolkit',
+        'Bug Reports': 'https://github.com/veg/drhip/issues',
+        'Source': 'https://github.com/veg/drhip',
     },
     classifiers=[
         "Development Status :: 4 - Beta",

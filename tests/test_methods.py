@@ -4,7 +4,7 @@ Tests for HyPhy analysis methods.
 
 import os
 
-from hyphy_results_toolkit.methods import (
+from drhip.methods import (
     HyPhyMethodRegistry,
     BustedMethod,
     RelaxMethod,

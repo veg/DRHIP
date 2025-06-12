@@ -8,7 +8,7 @@ import csv
 from unittest.mock import patch, MagicMock
 import pytest
 
-from hyphy_results_toolkit.cli import combine_csv_files, main
+from drhip.cli import combine_csv_files, main
 
 
 def test_combine_csv_files():
@@ -166,9 +166,9 @@ def test_combine_csv_files_empty():
             assert not os.path.exists(output_file)
 
 
-@patch('hyphy_results_toolkit.cli.process_gene.process_gene')
-@patch('hyphy_results_toolkit.cli.fh.get_genes')
-@patch('hyphy_results_toolkit.cli.combine_csv_files')
+@patch('drhip.cli.process_gene.process_gene')
+@patch('drhip.cli.fh.get_genes')
+@patch('drhip.cli.combine_csv_files')
 def test_main_workflow(mock_combine, mock_get_genes, mock_process_gene):
     """Test the main CLI workflow with mocked dependencies."""
     # Setup mocks
@@ -178,7 +178,7 @@ def test_main_workflow(mock_combine, mock_get_genes, mock_process_gene):
     with tempfile.TemporaryDirectory() as input_dir:
         with tempfile.TemporaryDirectory() as output_dir:
             # Mock command line arguments
-            with patch('sys.argv', ['hyphy-results', '-i', input_dir, '-o', output_dir]):
+            with patch('sys.argv', ['drhip', '-i', input_dir, '-o', output_dir]):
                 # Run the main function
                 main()
                 
@@ -195,8 +195,8 @@ def test_main_workflow(mock_combine, mock_get_genes, mock_process_gene):
                 mock_combine.assert_any_call(mock_combine.call_args[0][0], output_dir, "comparison_summary")
 
 
-@patch('hyphy_results_toolkit.cli.process_gene.process_gene')
-@patch('hyphy_results_toolkit.cli.fh.get_genes')
+@patch('drhip.cli.process_gene.process_gene')
+@patch('drhip.cli.fh.get_genes')
 def test_main_with_exception(mock_get_genes, mock_process_gene):
     """Test the main CLI workflow when an exception occurs."""
     # Setup mocks
@@ -207,7 +207,7 @@ def test_main_with_exception(mock_get_genes, mock_process_gene):
     with tempfile.TemporaryDirectory() as input_dir:
         with tempfile.TemporaryDirectory() as output_dir:
             # Mock command line arguments
-            with patch('sys.argv', ['hyphy-results', '-i', input_dir, '-o', output_dir]):
+            with patch('sys.argv', ['drhip', '-i', input_dir, '-o', output_dir]):
                 # Run the main function - should not raise the exception
                 main()
                 
@@ -227,12 +227,12 @@ def test_main_with_relative_paths(mock_parse_args):
     mock_parse_args.return_value = mock_args
     
     # Mock other dependencies
-    with patch('hyphy_results_toolkit.cli.fh.get_genes') as mock_get_genes:
-        with patch('hyphy_results_toolkit.cli.process_gene.process_gene') as mock_process_gene:
-            with patch('hyphy_results_toolkit.cli.os.getcwd') as mock_getcwd:
-                with patch('hyphy_results_toolkit.cli.os.path.join') as mock_join:
-                    with patch('hyphy_results_toolkit.cli.os.makedirs'):
-                        with patch('hyphy_results_toolkit.cli.combine_csv_files'):
+    with patch('drhip.cli.fh.get_genes') as mock_get_genes:
+        with patch('drhip.cli.process_gene.process_gene') as mock_process_gene:
+            with patch('drhip.cli.os.getcwd') as mock_getcwd:
+                with patch('drhip.cli.os.path.join') as mock_join:
+                    with patch('drhip.cli.os.makedirs'):
+                        with patch('drhip.cli.combine_csv_files'):
                             # Setup mocks
                             mock_getcwd.return_value = '/home/user'
                             mock_get_genes.return_value = []

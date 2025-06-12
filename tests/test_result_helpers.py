@@ -5,7 +5,7 @@ Tests for result helper functions.
 import pytest
 from unittest.mock import patch, MagicMock
 
-from hyphy_results_toolkit.utils import result_helpers as rh
+from drhip.utils import result_helpers as rh
 
 
 def test_merge_field_value_new_field():

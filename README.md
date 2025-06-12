@@ -1,4 +1,4 @@
-# hyphy-results-toolkit
+# DRHIP: Data Reduction for HyPhy with Inference Processing
 A Python toolkit for analyzing HyPhy results. Process and summarize evolutionary selection analysis results across multiple methods and genes.
 
 ## Installation
@@ -28,7 +28,7 @@ pip install -e .
 
 ```bash
 # Run analysis on HyPhy results from CAPHEINE workflow
-hyphy-results -i /path/to/results/hyphy -o /path/to/output
+drhip -i /path/to/results/hyphy -o /path/to/output
 ```
 
 ### Input File Structure
@@ -95,7 +95,7 @@ If data for a particular method is missing for a gene, or if the data is malform
 
 To add new fields to the output for an existing method:
 
-1. **Modify the method's class**: Each method has its own class in `hyphy_results_toolkit/methods/` (e.g., `busted.py`, `relax.py`).
+1. **Modify the method's class**: Each method has its own class in `drhip/methods/` (e.g., `busted.py`, `relax.py`).
    - Add the new field to the `process_results()` method for summary data
    - Add the new field to the `process_site_data()` method for site-specific data
 
@@ -139,7 +139,7 @@ The toolkit validates that all expected fields are present in the output:
 
 To add support for a new HyPhy analysis method:
 
-1. **Create a new method class** in `hyphy_results_toolkit/methods/`:
+1. **Create a new method class** in `drhip/methods/`:
    - Inherit from `HyPhyMethod` in `base.py`
    - Implement the required methods: `process_results()` and optionally `process_site_data()`
 
@@ -230,7 +230,7 @@ pytest tests/
 To run tests with coverage reporting:
 
 ```bash
-pytest --cov=hyphy_results_toolkit tests/
+pytest --cov=drhip tests/
 ```
 
 The test suite includes:

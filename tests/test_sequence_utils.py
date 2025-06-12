@@ -4,7 +4,7 @@ Tests for sequence utilities.
 
 import pytest
 from collections import Counter
-from hyphy_results_toolkit.utils import sequence_utils as su
+from drhip.utils import sequence_utils as su
 
 
 def test_get_majority_residue():

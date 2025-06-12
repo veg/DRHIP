@@ -6,7 +6,7 @@ import pytest
 from collections import Counter
 from unittest.mock import patch, MagicMock
 
-from hyphy_results_toolkit.utils import tree_helpers as th
+from drhip.utils import tree_helpers as th
 
 
 def test_tt_translation():

@@ -1,5 +1,5 @@
 """
-Configuration settings for the hyphy-results-toolkit.
+Configuration settings for DRHIP (Data Reduction for HyPhy with Inference Processing).
 """
 
 # Default values for comparison groups

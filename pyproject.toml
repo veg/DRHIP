@@ -3,4 +3,4 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "hyphy_results_toolkit/_version.py"
+write_to = "drhip/_version.py"

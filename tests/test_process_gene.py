@@ -6,7 +6,7 @@ import os
 import csv
 import tempfile
 import shutil
-from hyphy_results_toolkit.parsers.process_gene import process_gene
+from drhip.parsers.process_gene import process_gene
 
 def test_process_gene_output_files(results_dir):
     """Test that process_gene creates expected output files."""

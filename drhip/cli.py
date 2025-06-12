@@ -1,5 +1,5 @@
 """
-Command-line interface for hyphy-results-toolkit.
+Command-line interface for DRHIP (Data Reduction for HyPhy with Inference Processing).
 
 Authors:
     Sergei L Kosakovsky Pond (spond@temple.edu)

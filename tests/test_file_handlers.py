@@ -8,8 +8,8 @@ import json
 import pytest
 from unittest.mock import patch, mock_open
 
-from hyphy_results_toolkit.utils import file_handlers as fh
-from hyphy_results_toolkit.methods.registry import HyPhyMethodRegistry
+from drhip.utils import file_handlers as fh
+from drhip.methods.registry import HyPhyMethodRegistry
 
 
 def test_get_genes():
