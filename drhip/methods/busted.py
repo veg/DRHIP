@@ -96,7 +96,8 @@ class BustedMethod(HyPhyMethod):
         
         # Process each site
         for site_idx, site_subs in substitutions.items():
-            site_num = int(site_idx)
+            # Convert to 1-based indexing to match FEL and other methods
+            site_num = int(site_idx) + 1
             
             # Initialize composition and substitution counters
             composition = {}
