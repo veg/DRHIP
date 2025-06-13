@@ -3,7 +3,25 @@ A Python toolkit for analyzing HyPhy results. Process and summarize evolutionary
 
 ## Installation
 
+You can install DRHIP using one of the following methods:
+
+### From PyPI
+
 ```bash
+pip install drhip
+```
+
+### From Bioconda
+
+```bash
+conda install -c bioconda drhip
+```
+
+### From Source (Development)
+
+```bash
+git clone https://github.com/veg/DRHIP.git
+cd DRHIP
 pip install -e .
 ```
 
