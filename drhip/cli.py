@@ -14,6 +14,8 @@ import traceback
 import csv
 import tempfile
 
+from . import __version__
+
 from .parsers import process_gene
 from .utils import file_handlers as fh
 
@@ -102,7 +104,14 @@ def combine_csv_files(temp_dir: str, output_dir: str, file_suffix: str) -> None:
 def main():
     """Main entry point for the CLI."""
     arguments = argparse.ArgumentParser(
-        description='Summarize HyPhy analysis results for many genes into two csv files'
+        description='Summarize HyPhy analysis results for many genes into 2-4 CSV files. '
+                    'Always produces summary and site files. CFEL and RELAX results, '
+                    'if present, will generate additional comparison files.'
+    )
+    arguments.add_argument(
+        '-v', '--version',
+        action='version',
+        version=f'%(prog)s {__version__}'
     )
     arguments.add_argument(
         '-i', '--input',

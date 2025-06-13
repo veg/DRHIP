@@ -2,4 +2,6 @@
 HyPhy Results Toolkit - Tools for analyzing HYPHY results.
 """
 
-__version__ = "0.1.0"
+from .version import __version__
+
+__all__ = ["__version__"]

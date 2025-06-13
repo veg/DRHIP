@@ -1,17 +1,19 @@
 import os
+import sys
 from setuptools import setup, find_packages
+
+# Add the project directory to the path so we can import the version
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+from drhip.version import __version__
 
 # Read the contents of README.md
 this_directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-# Read version from version.txt or define it here
-version = '0.1.0'
-
 setup(
     name="drhip",  # DRHIP: Data Reduction for HyPhy with Inference Processing
-    version=version,
+    version=__version__,
     packages=find_packages(include=['drhip', 'drhip.*']),
     install_requires=[
         "numpy>=1.20.0",
