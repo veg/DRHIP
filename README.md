@@ -46,8 +46,14 @@ hyphy/
 ├── MEME/
 │   ├── gene1.MEME.json
 │   └── ...
-└── PRIME/
-    ├── gene1.PRIME.json
+├── PRIME/
+│   ├── gene1.PRIME.json
+│   └── ...
+├── RELAX/                  # Optional - presence determines if comparison files are generated
+│   ├── gene1.RELAX.json
+│   └── ...
+└── CONTRASTFEL/           # Optional - presence determines if comparison files are generated
+    ├── gene1.CONTRASTFEL.json
     └── ...
 ```
 
@@ -56,7 +62,7 @@ hyphy/
 The toolkit produces combined files that aggregate data across all genes:
 
 - **combined_summary.csv**: Gene-level summary statistics including:
-  - RELAX: K parameter, p-values, and LRT statistics
+  - RELAX: K parameter, p-values, and LRT statistics (if RELAX results are available)
   - BUSTED: Evidence of selection, omega distributions
   - Conservation metrics
   - Branch length information
@@ -66,13 +72,13 @@ The toolkit produces combined files that aggregate data across all genes:
   - Substitution counts
   - Conservation status
 
-- **combined_comparison_summary.csv**: Comparison group-specific summary statistics (when comparison groups are present):
+- **combined_comparison_summary.csv**: Comparison group-specific summary statistics (only generated when RELAX or Contrast-FEL results are present):
   - Group sizes (N)
   - Total branch lengths (T)
   - Group-specific dN/dS ratios
   - Conservation metrics per group
 
-- **combined_comparison_site.csv**: Comparison group-specific site analysis (when comparison groups are present):
+- **combined_comparison_site.csv**: Comparison group-specific site analysis (only generated when RELAX or Contrast-FEL results are present):
   - Site-specific metrics for each comparison group
   - Conservation markers
   - Group-specific selection indicators
@@ -182,11 +188,16 @@ Comparison groups represent different sets of branches in the phylogenetic tree 
 
 1. **What are comparison groups**: 
    - Groups of branches in the phylogenetic tree labeled for comparative analysis
-   - Used by methods like CFEL and RELAX to compare selection pressures between different lineages
+   - Used by methods like Contrast-FEL and RELAX to compare selection pressures between different lineages
    - Typically labeled as 'test'/'reference', 'foreground'/'background', or custom labels
 
-2. **Detection logic** is in `utils/result_helpers.py`:
-   - `detect_comparison_groups()` attempts to extract group labels from CFEL and RELAX results files
+2. **File requirements**:
+   - **RELAX**: Files must be named `[gene].RELAX.json` and placed in the `RELAX/` directory (optional)
+   - **Contrast-FEL**: Files must be named `[gene].CONTRASTFEL.json` (not `[gene].CFEL.json`) and placed in the `CONTRASTFEL/` directory (optional)
+   - **Note**: The presence of either RELAX or Contrast-FEL results will trigger the generation of comparison output files
+
+3. **Detection logic** is in `utils/result_helpers.py`:
+   - `detect_comparison_groups()` attempts to extract group labels from CONTRASTFEL and RELAX results files
    - The toolkit examines these results to find branch labels assigned to different groups
    - Falls back to default groups ('test'/'reference') if no explicit labels are detected
 
