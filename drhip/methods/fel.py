@@ -12,6 +12,63 @@ class FelMethod(HyPhyMethod):
     def __init__(self):
         """Initialize FEL method."""
         super().__init__("FEL", "FEL.json")
+        
+    def calculate_negative_sites(self, results: Dict[str, Any], 
+                                alpha_col: str = 'alpha', 
+                                beta_col: str = 'beta', 
+                                pvalue_col: str = 'p-value',
+                                significance: float = 0.05) -> Dict[str, int]:
+        """Calculate negative selection statistics from MLE data.
+        
+        This helper calculates FEL negative selection statistics:
+        - negative_sites: Number of sites under negative selection (beta < alpha, p <= significance)
+        
+        Args:
+            results: Raw results dictionary from JSON file
+            alpha_col: Name of the column containing alpha (synonymous rate) values
+            beta_col: Name of the column containing beta (non-synonymous rate) values
+            pvalue_col: Name of the column containing p-values
+            significance: P-value threshold for significance (default: 0.05)
+            
+        Returns:
+            Dictionary with negative selection statistics
+        """
+        stats = {
+            'negative_sites': 0
+        }
+        
+        # Check if required data is available
+        if not self.has_mle_content(results) or not self.has_mle_headers(results):
+            return stats
+            
+        # Get header indices
+        header_indices = self.get_header_indices(results)
+        
+        # Get indices for the values we need
+        alpha_index = self.get_column_index(header_indices, alpha_col, -1)
+        beta_index = self.get_column_index(header_indices, beta_col, -1)
+        pvalue_index = self.get_column_index(header_indices, pvalue_col, -1)
+        
+        # Check if we have valid column indices
+        if alpha_index < 0 or beta_index < 0 or pvalue_index < 0:
+            return stats
+        
+        # Process each site
+        for row in results['MLE']['content']['0']:
+            try:
+                # Extract values
+                alpha = float(row[alpha_index])    # Alpha (synonymous rate)
+                beta = float(row[beta_index])      # Beta (non-synonymous rate)
+                p_value = float(row[pvalue_index]) # P-value
+                
+                # Count sites based on selection criteria
+                if p_value <= significance and beta < alpha:
+                    stats['negative_sites'] += 1
+            except (ValueError, IndexError, TypeError):
+                # Skip this site if there's an error
+                continue
+        
+        return stats
     
     def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process FEL results.
@@ -25,8 +82,8 @@ class FelMethod(HyPhyMethod):
         # Extract common fields (N, T, sites)
         processed = self.extract_common_fields(results)
         
-        # Calculate selection statistics using the helper
-        selection_stats = self.calculate_selection_counts(
+        # Calculate negative selection statistics using the helper
+        selection_stats = self.calculate_negative_sites(
             results,
             alpha_col='alpha',
             beta_col='beta',
@@ -98,7 +155,6 @@ class FelMethod(HyPhyMethod):
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
         return [
-            'positive_sites',
             'negative_sites'
         ]
     

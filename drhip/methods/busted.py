@@ -27,6 +27,43 @@ class BustedMethod(HyPhyMethod):
         omegas = fit["fits"]["Unconstrained model"]["Rate Distributions"]["Test"]
         omega_idx = str(len(omegas) - 1)
         return omegas[omega_idx]
+        
+    def calculate_rate_distribution_stats(self, results: Dict[str, Any],
+                                     model_name: str = 'Unconstrained model',
+                                     distribution_name: str = 'global') -> Dict[str, float]:
+        """Calculate statistics from rate distributions.
+        
+        This helper extracts rate distributions and calculates statistics like dN/dS.
+        
+        Args:
+            results: Raw results dictionary from JSON file
+            model_name: Name of the model to extract rates from (default: 'Unconstrained model')
+            distribution_name: Name of the distribution to use (default: 'global')
+            
+        Returns:
+            Dictionary with calculated statistics (e.g., {'dN/dS': 0.5})
+        """
+        stats = {'dN/dS': 0.0}
+        
+        try:
+            if 'fits' in results and model_name in results['fits']:
+                model_fit = results['fits'][model_name]
+                if 'Rate Distributions' in model_fit and distribution_name in model_fit['Rate Distributions']:
+                    rates = model_fit['Rate Distributions'][distribution_name]
+                    
+                    # Calculate weighted average of omega values
+                    omega_sum = 0.0
+                    for rate in rates:
+                        # Handle different formats (weight or proportion)
+                        weight = rate.get('weight', rate.get('proportion', 0.0))
+                        omega_sum += rate['omega'] * weight
+                    
+                    stats['dN/dS'] = omega_sum
+        except Exception as e:
+            print(f"Error calculating rate distribution stats: {e}")
+            # Keep default values on error
+        
+        return stats
     
     def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process BUSTED results.

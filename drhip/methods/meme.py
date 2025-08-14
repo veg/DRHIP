@@ -25,7 +25,7 @@ class MemeMethod(HyPhyMethod):
         processed = {}
         
         # Process sites under selection
-        sites_under_selection = 0
+        positive_sites = 0
         if self.has_mle_content(results) and self.has_mle_headers(results):
             # Get header indices
             header_indices = self.get_header_indices(results)
@@ -34,11 +34,16 @@ class MemeMethod(HyPhyMethod):
             pvalue_index = self.get_column_index(header_indices, 'p-value', 7)  # P-value for episodic selection
             
             for row in results['MLE']['content']['0']:
-                p_value = float(row[pvalue_index])
-                if p_value <= 0.05:
-                    sites_under_selection += 1
+                try:
+                    p_value = float(row[pvalue_index])
+                    if p_value <= 0.05:
+                        positive_sites += 1
+                except (ValueError, TypeError, IndexError):
+                    # Skip rows with invalid data
+                    pass
         
-        # We don't need to store this in the summary
+        # Store the count of sites under episodic selection in the summary
+        processed['positive_sites'] = positive_sites
         
         return processed
     
@@ -91,7 +96,7 @@ class MemeMethod(HyPhyMethod):
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
-        return []  # No summary fields needed
+        return ['positive_sites']  # Return count of sites under episodic selection
     
     @staticmethod
     def get_site_fields() -> List[str]:
