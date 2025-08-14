@@ -63,10 +63,44 @@ class CfelMethod(HyPhyMethod):
             results: Raw CFEL results dictionary
             
         Returns:
-            Empty dictionary as CFEL doesn't use standard summary fields
+            Dictionary with diff_sites count from CFEL analysis
         """
-        # CFEL doesn't use standard summary fields, only comparison group fields
-        return {}
+        # Initialize with empty dictionary
+        processed = {}
+        
+        # Calculate diff_sites (sites with Q-value < 0.05 from CFEL MLE output)
+        if self.has_mle_headers(results) and self.has_mle_content(results):
+            try:
+                # Get header indices
+                header_indices = self.get_header_indices(results)
+                
+                # Find the Q-value column index
+                q_value_idx = -1
+                for header_name, idx in header_indices.items():
+                    if 'q-value' in header_name.lower():
+                        q_value_idx = idx
+                        break
+                
+                # Count sites with Q-value < 0.05
+                diff_sites_count = 0
+                if q_value_idx >= 0:
+                    for row in results['MLE']['content']['0']:
+                        if q_value_idx < len(row):
+                            try:
+                                q_value = float(row[q_value_idx])
+                                if q_value <= 0.05:  # Significant if Q-value <= 0.05
+                                    diff_sites_count += 1
+                            except (ValueError, TypeError):
+                                # Skip rows with invalid Q-values
+                                continue
+                
+                # Add diff_sites to processed results
+                processed['diff_sites'] = diff_sites_count
+                
+            except Exception as e:
+                print(f"Error calculating diff_sites from CFEL results: {e}")
+        
+        return processed
         
     def process_comparison_data(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process comparison group data that is not site-specific.
@@ -206,7 +240,6 @@ class CfelMethod(HyPhyMethod):
         
         # Find column indices for beta values by group
         beta_idx_map = self._beta_idx_map
-        subs_idx_map = self._subs_idx_map
         
         # Get branch information for calculating N and T values
         tested = results.get('tested', {}).get('0', {})
@@ -275,8 +308,8 @@ class CfelMethod(HyPhyMethod):
     @staticmethod
     def get_summary_fields() -> List[str]:
         """Get list of summary fields produced by this method."""
-        # CFEL doesn't use standard summary fields
-        return []
+        # CFEL now provides the diff_sites field
+        return ['diff_sites']
         
     @staticmethod
     def get_site_fields() -> List[str]:

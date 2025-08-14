@@ -204,7 +204,8 @@ class HyPhyMethod(ABC):
         This helper calculates common selection statistics:
         - positive_sites: Number of sites under positive selection (beta > alpha, p <= significance)
         - negative_sites: Number of sites under negative selection (beta < alpha, p <= significance)
-        - diff_sites: Total number of sites with significant differences (p <= significance)
+        
+        Note: diff_sites is calculated separately by the CFEL method.
         
         Args:
             results: Raw results dictionary from JSON file
@@ -218,8 +219,8 @@ class HyPhyMethod(ABC):
         """
         stats = {
             'positive_sites': 0,
-            'negative_sites': 0,
-            'diff_sites': 0
+            'negative_sites': 0
+            # diff_sites is now calculated by CFEL method
         }
         
         # Check if required data is available
@@ -248,7 +249,7 @@ class HyPhyMethod(ABC):
                 
                 # Count sites based on selection criteria
                 if p_value <= significance:
-                    stats['diff_sites'] += 1
+                    # diff_sites is now calculated by CFEL method
                     if beta > alpha:
                         stats['positive_sites'] += 1
                     elif beta < alpha:
