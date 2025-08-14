@@ -44,8 +44,8 @@ def test_fel_method_processing(real_fel_results):
     
     # Basic validation of results - check for current field names
     assert 'N' in results
-    assert 'positive_sites' in results
     assert 'negative_sites' in results
+    # FEL no longer reports positive sites
     
     # Test site data processing
     site_data = method.process_site_data(real_fel_results)
@@ -66,6 +66,9 @@ def test_meme_method_processing(real_meme_results):
     
     # Verify the method returns a dictionary
     assert isinstance(results, dict)
+    
+    # Check for positive_sites field (renamed from meme_positive_sites)
+    assert 'positive_sites' in results
     
     # Test site data processing
     site_data = method.process_site_data(real_meme_results)
