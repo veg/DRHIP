@@ -88,7 +88,7 @@ class CfelMethod(HyPhyMethod):
                         if q_value_idx < len(row):
                             try:
                                 q_value = float(row[q_value_idx])
-                                if q_value <= 0.05:  # Significant if Q-value <= 0.05
+                                if q_value <= 0.20:  # Significant if Q-value <= 0.05
                                     diff_sites_count += 1
                             except (ValueError, TypeError):
                                 # Skip rows with invalid Q-values
