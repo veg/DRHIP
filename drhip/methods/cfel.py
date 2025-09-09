@@ -272,6 +272,14 @@ class CfelMethod(HyPhyMethod):
         if '0' in mle_content and isinstance(mle_content['0'], list):
             rows = mle_content['0']
             
+            # Locate the Q-value column index once
+            header_indices = self.get_header_indices(results)
+            q_value_idx = -1
+            for header_name, idx in header_indices.items():
+                if 'q-value' in header_name.lower():
+                    q_value_idx = idx
+                    break
+            
             # Each row represents a site
             for site_idx, row in enumerate(rows):
                 site_id = str(site_idx + 1)  # Convert to 1-based site index as string
@@ -283,32 +291,20 @@ class CfelMethod(HyPhyMethod):
                 # Process data for each comparison group
                 for group in self._comparison_groups:
                     group_data = {}
-                    
-                    # Add CFEL marker for this group
-                    try:
-                        beta_idx = beta_idx_map.get(group, -1)
-                        if beta_idx >= 0 and beta_idx < len(row):
-                            beta = float(row[beta_idx])
-                            
-                            # Set CFEL marker based on beta value
-                            # TODO: this is incorrect. beta value has no bearing on site significance
-                            # and beta values *between groups* are what's needed to see if a site is "intensified" or not
-                            # we should use the comparison groups here and specify intensified/relaxed sites 
-                            # in one comparison group relative to the other (ignoring background?)
-
-                            # site-wise MEME results are reported in comparison_sites.csv
-                            # intensified positive selection can be determined post-hoc by comparing sites with
-                            # significant MEME results and sites with significant CFEL results
-                            if beta > 0:
-                                group_data['cfel_marker'] = '+'
-                            elif beta < 0:
-                                group_data['cfel_marker'] = '-'
+                    # Safely set CFEL marker to the site's Q-value (same for all groups)
+                    q_value_str = 'NA'
+                    if q_value_idx >= 0 and q_value_idx < len(row):
+                        try:
+                            q_value = float(row[q_value_idx])
+                            # Set the marker based on significance
+                            if q_value <= 0.20:
+                                q_value_str = f'{q_value:.3f}'  # Format p-value for significant sites
                             else:
-                                group_data['cfel_marker'] = '='
-                        else:
-                            group_data['cfel_marker'] = '?'
-                    except (ValueError, TypeError, IndexError):
-                        group_data['cfel_marker'] = '?'
+                                q_value_str = '-'  # Use dash for non-significant sites
+                        except (ValueError, TypeError):
+                            # Return NA for malformed data
+                            q_value_str = 'NA'
+                    group_data['cfel_marker'] = q_value_str
                     
                     site_comparison_data[group] = group_data
                 
