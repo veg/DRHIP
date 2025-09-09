@@ -276,6 +276,9 @@ class CfelMethod(HyPhyMethod):
             for site_idx, row in enumerate(rows):
                 site_id = str(site_idx + 1)  # Convert to 1-based site index as string
                 site_comparison_data = {}
+
+                # should check if Q-value is significant at default threshold 0.20 for each site
+                # Q-value is only for statistcal comparison of branch sets selected during hyphy run
                 
                 # Process data for each comparison group
                 for group in self._comparison_groups:
@@ -288,6 +291,14 @@ class CfelMethod(HyPhyMethod):
                             beta = float(row[beta_idx])
                             
                             # Set CFEL marker based on beta value
+                            # TODO: this is incorrect. beta value has no bearing on site significance
+                            # and beta values *between groups* are what's needed to see if a site is "intensified" or not
+                            # we should use the comparison groups here and specify intensified/relaxed sites 
+                            # in one comparison group relative to the other (ignoring background?)
+
+                            # site-wise MEME results are reported in comparison_sites.csv
+                            # intensified positive selection can be determined post-hoc by comparing sites with
+                            # significant MEME results and sites with significant CFEL results
                             if beta > 0:
                                 group_data['cfel_marker'] = '+'
                             elif beta < 0:
