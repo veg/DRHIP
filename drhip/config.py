@@ -35,6 +35,8 @@ SITES_FIELDNAMES = [
     'substitutions',
     'majority_residue',
     'prime_marker',
+    'meme_marker',
+    'fel_selection'
 ]
 
 COMPARISON_GROUPS_SUMMARY_FIELDNAMES = [
@@ -57,5 +59,6 @@ COMPARISON_GROUPS_SITE_FIELDNAMES = [
     'majority_residue',
     'composition',
     'cfel_marker',
+    'cfel_beta',
     'intensified_positive_selection'
 ]
