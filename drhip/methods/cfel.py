@@ -171,8 +171,7 @@ class CfelMethod(HyPhyMethod):
                 try:
                     data_rows = results["MLE"]["content"]["0"]
                     
-                    # Count conserved sites (both nt and aa)
-                    nt_conserved = 0
+                    # Count conserved sites
                     aa_conserved = 0
                     
                     for row in data_rows:
@@ -180,27 +179,15 @@ class CfelMethod(HyPhyMethod):
                         beta_idx = self._beta_idx_map.get(group, -1)
                         if beta_idx >= 0:
                             beta = float(row[beta_idx])
-                            
-                            # Nucleotide conservation: beta = 0
-                            is_nt_conserved = (beta == 0.0)
-                            
-                            # Amino acid conservation: beta = 0 but substitutions exist
-                            subs_idx = self._subs_idx_map.get(group, -1)
-                            has_subs = False
-                            if subs_idx >= 0:
-                                has_subs = (float(row[subs_idx]) > 0)
-                            
-                            is_aa_conserved = is_nt_conserved and has_subs
-                            
-                            if is_nt_conserved:
-                                nt_conserved += 1
+
+                            # Amino acid conservation: beta = 0
+                            is_aa_conserved = (beta == 0.0)
+
                             if is_aa_conserved:
                                 aa_conserved += 1
                     
-                    group_data['group_nt_conserved'] = nt_conserved
                     group_data['group_aa_conserved'] = aa_conserved
                 except (KeyError, TypeError, IndexError, ValueError):
-                    group_data['group_nt_conserved'] = 'NA'
                     group_data['group_aa_conserved'] = 'NA'
             
             comparison_data[group] = group_data
@@ -331,6 +318,5 @@ class CfelMethod(HyPhyMethod):
             'group_N',              # Number of sequences in this comparison group
             'group_T',              # Total branch length for this comparison group
             'group_dN/dS',          # dN/dS ratio for this comparison group
-            'group_nt_conserved',   # Number of nucleotide conserved sites in this group
             'group_aa_conserved'    # Number of amino acid conserved sites in this group
         ]

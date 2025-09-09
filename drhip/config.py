@@ -43,7 +43,6 @@ COMPARISON_GROUPS_SUMMARY_FIELDNAMES = [
     'group_N',
     'group_T',
     'group_dN/dS',
-    'group_nt_conserved',
     'group_aa_conserved',
 ]
 
