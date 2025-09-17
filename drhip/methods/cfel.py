@@ -274,11 +274,7 @@ class CfelMethod(HyPhyMethod):
             
             # Locate the Q-value column index once
             header_indices = self.get_header_indices(results)
-            q_value_idx = -1
-            for header_name, idx in header_indices.items():
-                if 'q-value' in header_name.lower():
-                    q_value_idx = idx
-                    break
+            q_value_idx = self.get_column_index(header_indices, 'Q-value (overall)', -1)
             
             # Each row represents a site
             for site_idx, row in enumerate(rows):
