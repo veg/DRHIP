@@ -259,6 +259,10 @@ class CfelMethod(HyPhyMethod):
         if '0' in mle_content and isinstance(mle_content['0'], list):
             rows = mle_content['0']
             
+            # Locate the Q-value column index once
+            header_indices = self.get_header_indices(results)
+            q_value_idx = self.get_column_index(header_indices, 'Q-value (overall)', -1)
+            
             # Each row represents a site
             for site_idx, row in enumerate(rows):
                 site_id = str(site_idx + 1)  # Convert to 1-based site index as string
@@ -267,24 +271,39 @@ class CfelMethod(HyPhyMethod):
                 # Process data for each comparison group
                 for group in self._comparison_groups:
                     group_data = {}
+                    # Safely set CFEL marker to the site's Q-value (same for all groups)
+                    q_value_str = 'NA'
+                    if q_value_idx >= 0 and q_value_idx < len(row):
+                        try:
+                            q_value = float(row[q_value_idx])
+                            # Set the marker based on significance
+                            if q_value <= 0.20:
+                                q_value_str = f'{q_value:.3f}'  # Format p-value for significant sites
+                            else:
+                                q_value_str = '-'  # Use dash for non-significant sites
+                        except (ValueError, TypeError):
+                            # Return NA for malformed data
+                            q_value_str = 'NA'
+                    group_data['cfel_marker'] = q_value_str
                     
-                    # Add CFEL marker for this group
+                    # Add per-group Beta value
+                    beta_value_str = 'NA'
                     try:
                         beta_idx = beta_idx_map.get(group, -1)
                         if beta_idx >= 0 and beta_idx < len(row):
-                            beta = float(row[beta_idx])
-                            
-                            # Set CFEL marker based on beta value
-                            if beta > 0:
-                                group_data['cfel_marker'] = '+'
-                            elif beta < 0:
-                                group_data['cfel_marker'] = '-'
+                            beta_value = float(row[beta_idx])
+                            # Format to convey magnitude: use scientific notation for very small/large values
+                            if beta_value == 0.0:
+                                beta_value_str = '0.000'
                             else:
-                                group_data['cfel_marker'] = '='
-                        else:
-                            group_data['cfel_marker'] = '?'
+                                abs_beta = abs(beta_value)
+                                if abs_beta < 1e-3 or abs_beta >= 1e3:
+                                    beta_value_str = f'{beta_value:.3e}'
+                                else:
+                                    beta_value_str = f'{beta_value:.4f}'
                     except (ValueError, TypeError, IndexError):
-                        group_data['cfel_marker'] = '?'
+                        beta_value_str = 'NA'
+                    group_data['cfel_beta'] = beta_value_str
                     
                     site_comparison_data[group] = group_data
                 
@@ -309,6 +328,7 @@ class CfelMethod(HyPhyMethod):
         """Get list of site-specific fields that are specific to comparison groups."""
         return [
             'cfel_marker',  # CFEL marker for this site in this comparison group
+            'cfel_beta',         # Per-group beta value for this site
         ]
         
     @staticmethod
