@@ -130,36 +130,26 @@ class BustedMethod(HyPhyMethod):
         # Parse the tree
         internal_branches = {}
         tree = tree_helpers.newick_parser(results['input']['trees']['0'], {}, internal_branches)
-        
+
         # Process each site
         for site_idx, site_subs in substitutions.items():
             # Convert to 1-based indexing to match FEL and other methods
             site_num = int(site_idx) + 1
             
-            # Initialize composition and substitution counters
+            # Initialize composition and substitution dictionaries
             composition = {}
             subs = {}
             
-            # Check if we have comparison groups available
-            has_comparison_groups = False
-            comparison_groups = []
-            if hasattr(self, '_comparison_groups') and self._comparison_groups:
-                if len(self._comparison_groups) > 0:
-                    has_comparison_groups = True
-                    comparison_groups = self._comparison_groups
-            
-            # Initialize composition and substitution dictionaries
-            for group in comparison_groups:
-                # Traverse the tree to collect composition and substitution data for each group
-                tree_helpers.traverse_tree(
-                    tree, 
-                    None, 
-                    site_subs, 
-                    internal_branches, 
-                    composition, 
-                    subs, 
-                    group  # Use each group as leaf label
-                )
+            # Traverse the tree to collect composition and substitution data for each group
+            tree_helpers.traverse_tree(
+                tree, 
+                None, 
+                site_subs, 
+                internal_branches, 
+                composition, 
+                subs, 
+                None  # no leaf labels
+            )
             
             # Process the composition data
             site_composition = []
@@ -180,10 +170,10 @@ class BustedMethod(HyPhyMethod):
                 'majority_residue': 'NA'
             }
             
-            # Calculate majority residue if we have comparison groups
-            if has_comparison_groups and comparison_groups[0] in composition and composition[comparison_groups[0]]:
+            # Calculate majority residue for test (internal) branches
+            if 'test' in composition and composition['test']:
                 sorted_residues = sorted(
-                    [[aa, count] for aa, count in composition[comparison_groups[0]].items()],
+                    [[aa, count] for aa, count in composition['test'].items()],
                     key=lambda d: -d[1]
                 )
                 if sorted_residues:
