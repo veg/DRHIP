@@ -4,6 +4,8 @@ CFEL (Contrast-FEL) method implementation.
 
 from typing import Dict, Any, List
 
+from ..utils import tree_helpers
+from ..utils import sequence_utils as su
 from .base import HyPhyMethod
 
 class CfelMethod(HyPhyMethod):
@@ -308,6 +310,70 @@ class CfelMethod(HyPhyMethod):
                     site_comparison_data[group] = group_data
                 
                 comparison_data[site_id] = site_comparison_data
+        
+        # Check if we have substitutions data
+        if 'substitutions' in results and '0' in results['substitutions']:
+            substitutions = results['substitutions']['0']
+
+            # Get the tree  
+            if 'input' not in results or 'trees' not in results['input'] or '0' not in results['input']['trees']:
+                return comparison_data
+
+            # Parse the tree
+            internal_branches = {}
+            tree = tree_helpers.newick_parser(results['input']['trees']['0'], {}, internal_branches)
+            
+            # Process each site
+        for site_idx, site_subs in substitutions.items():
+            # Convert to 1-based indexing to match FEL and other methods
+            site_num = int(site_idx) + 1
+            
+            # Initialize composition and substitution dictionaries
+            composition = {}
+            subs = {}
+            
+            # Traverse the tree to collect composition and substitution data for each group
+            tree_helpers.traverse_tree(
+                tree, 
+                None, 
+                site_subs, 
+                internal_branches, 
+                composition, 
+                subs, 
+                None  # no leaf labels
+            )
+            
+            # Process the composition data
+            site_composition = []
+            for tag, counts in composition.items():
+                for aa, count in counts.items():
+                    site_composition.append(f"{aa}:{count}")
+            
+            # Process the substitution data
+            site_substitutions = []
+            for tag, counts in subs.items():
+                for sub, count in counts.items():
+                    site_substitutions.append(f"{sub}:{count}")
+            
+            # Initialize site data with basic information - only include site-specific fields
+            site_info = {
+                'composition': ','.join(site_composition) if site_composition else 'NA',
+                'substitutions': ','.join(site_substitutions) if site_substitutions else 'NA',
+                'majority_residue': 'NA'
+            }
+            
+            # Calculate majority residue for test (internal) branches
+            if 'test' in composition and composition['test']:
+                sorted_residues = sorted(
+                    [[aa, count] for aa, count in composition['test'].items()],
+                    key=lambda d: -d[1]
+                )
+                if sorted_residues:
+                    site_info['majority_residue'] = sorted_residues[0][0]
+            
+            # Store the site data
+            comparison_data[site_num] = site_info  
+            # TODO: add/append per-group data to each group, rather than overwriting the site's data entirely
         
         return comparison_data
         
