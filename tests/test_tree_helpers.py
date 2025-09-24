@@ -177,7 +177,7 @@ def test_traverse_tree():
     assert "background" in subs
     assert "I:M" in subs["background"] or "M:I" in subs["background"]
 
-def test_traverse_tree():
+def test_traverse_tree_group_specific():
     """Test tree traversal function."""
     # Create a simple tree
     tree = {
