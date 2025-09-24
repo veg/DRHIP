@@ -209,7 +209,7 @@ def newick_parser(nwk_str: str, bootstrap_values: bool, track_tags: Optional[Dic
     return tree_json
 
 def traverse_tree(node: Dict, parent: Optional[Dict], labels: Dict, labeler: Dict, 
-                 composition: Dict, subs: Dict, leaf_label: Optional[str] = None) -> None:
+                 composition: Dict, subs: Dict, leaf_label: Optional[str] = None, ignore_leaves: bool = False) -> None:
     """Traverse a phylogenetic tree and collect information about compositions and substitutions.
     
     Args:
@@ -219,7 +219,8 @@ def traverse_tree(node: Dict, parent: Optional[Dict], labels: Dict, labeler: Dic
         labeler: Dictionary mapping node names to tags
         composition: Dictionary to store composition information
         subs: Dictionary to store substitution information
-        leaf_label: Label to use for leaf nodes
+        leaf_label: Label to use for leaf nodes. Takes precedence over ignore_leaves.
+        ignore_leaves: Boolean, whether to calculate composition from leaf node parents' tags (not leaf tags). Useful when tagging internal branches only.
     """
     tag = labeler[node["name"]] if parent else None
     
@@ -257,11 +258,17 @@ def traverse_tree(node: Dict, parent: Optional[Dict], labels: Dict, labeler: Dic
         node["label"] = parent["label"] if parent else ""
 
     if "children" not in node:
-        tag = leaf_label if leaf_label else tag
+        if leaf_label:
+            tag = leaf_label 
+        elif ignore_leaves:
+            tag = parent["tag"] if parent and "tag" in parent else tag
+        else:
+            tag = tag
+        
         if tag not in composition:
             composition[tag] = Counter()
         composition[tag][TT(node["label"])] += 1
         
     if "children" in node:
         for c in node["children"]:
-            traverse_tree(c, node, labels, labeler, composition, subs, leaf_label)
+            traverse_tree(c, node, labels, labeler, composition, subs, leaf_label, ignore_leaves)
