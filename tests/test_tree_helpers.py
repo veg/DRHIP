@@ -170,6 +170,71 @@ def test_traverse_tree():
     # Check composition tracking
     assert "foreground" in composition
     assert "background" in composition
+    assert composition["foreground"] == {"M": 1}
+    assert composition["background"] == {"I": 1}
+    
+    # Check substitution tracking - should have background tag with substitutions
+    assert "background" in subs
+    assert "I:M" in subs["background"] or "M:I" in subs["background"]
+
+def test_traverse_tree():
+    """Test tree traversal function."""
+    # Create a simple tree
+    tree = {
+        "name": "root",
+        "children": [
+            {
+                "name": "node1",
+                "tag": "foreground",
+                "children": [
+                    {
+                        "name": "node2",
+                        "tag": "background"
+                    }
+                ]
+            },
+            {
+                "name": "node3",
+                "tag": "reference",
+                "children": [
+                    {
+                        "name": "node4",
+                        "tag": "background"
+                    }
+                ]
+            }
+        ]
+    }
+    
+    # Create mock data
+    labels = {
+        "node1": "ATG",
+        "node2": "ATG",
+        "node3": "ATT",
+        "node4": "ATT"
+    }
+    
+    labeler = {
+        "node1": "foreground",
+        "node2": "background",
+        "node3": "reference",
+        "node4": "background"
+    }
+    
+    # Initialize tracking dictionaries
+    composition = {}  # fucker only counts leaves
+    subs = {}
+    
+    # Traverse tree
+    th.traverse_tree(tree, None, labels, labeler, composition, subs, "foreground")
+    
+    # Check composition tracking
+    assert "foreground" in composition
+    assert "background" in composition
+    assert "reference" in composition
+    assert composition["foreground"] == {"M": 1}
+    assert composition["background"] == {"I": 1}
+    # assert composition["reference"] == {"M": 1}
     
     # Check substitution tracking - should have background tag with substitutions
     assert "background" in subs
