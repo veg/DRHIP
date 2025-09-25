@@ -343,10 +343,11 @@ class CfelMethod(HyPhyMethod):
                         tree,
                         None,
                         site_subs,
-                        track_tags,
+                        track_tags,  # track_tags SHOULD be the same as tested, but who knows
                         composition_all,
                         subs_all,
-                        None  # use natural tags from the tree for leaves
+                        None,  # do not overwrite leaf tags
+                        ignore_leaves=True
                     )
                 except Exception:
                     continue
@@ -364,6 +365,16 @@ class CfelMethod(HyPhyMethod):
                     comp_counts = composition_all.get(group, {})
                     comp_list = [f"{aa}:{count}" for aa, count in comp_counts.items()]
                     comparison_data[site_id][group]['composition'] = ','.join(comp_list) if comp_list else 'NA'
+
+                    # Majority residue for this group
+                    sorted_residues = sorted(
+                        [[aa, count] for aa, count in comp_counts.items()],
+                        key=lambda d: -d[1]
+                    )
+                    if sorted_residues:
+                        comparison_data[site_id][group]['majority_residue'] = sorted_residues[0][0]
+                    else:
+                        comparison_data[site_id][group]['majority_residue'] = 'NA'
 
                     # Substitutions for this group
                     sub_counts = subs_all.get(group, {})
@@ -393,6 +404,7 @@ class CfelMethod(HyPhyMethod):
             'cfel_beta',         # Per-group beta value for this site
             'composition',       # Per-group composition at this site
             'substitutions',     # Per-group substitutions at this site
+            'majority_residue'   # Per-group majority residue at this site
         ]
         
     @staticmethod

@@ -208,6 +208,7 @@ def test_traverse_tree_group_specific():
     
     # Create mock data
     labels = {
+        "root": "ATT",
         "node1": "ATG",
         "node2": "ATT",
         "node3": "ATT",
@@ -222,7 +223,7 @@ def test_traverse_tree_group_specific():
     }
     
     # Initialize tracking dictionaries
-    composition = {}  # fucker only counts leaves
+    composition = {}
     subs = {}
     
     # Traverse tree
@@ -236,7 +237,9 @@ def test_traverse_tree_group_specific():
     
     # Check substitution tracking - should have background tag with substitutions
     assert "background" in subs
+    assert "foreground" in subs
     assert "I:M" in subs["background"] or "M:I" in subs["background"]
+    assert "I:M" in subs["foreground"] or "M:I" in subs["foreground"]
 
 def test_traverse_tree_non_group_specific():
     """Test tree traversal function."""
@@ -283,7 +286,7 @@ def test_traverse_tree_non_group_specific():
     }
     
     # Initialize tracking dictionaries
-    composition = {}  # fucker only counts leaves
+    composition = {}
     subs = {}
     
     # Traverse tree
