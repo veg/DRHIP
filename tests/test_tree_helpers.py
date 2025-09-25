@@ -232,6 +232,7 @@ def test_traverse_tree_group_specific():
     # Check composition tracking
     assert "foreground" in composition
     assert "reference" in composition
+    assert "background" not in composition
     assert composition["foreground"] == {"I": 1}  # foreground is parent of node2, which has the I residue
     assert composition["reference"] == {"I": 1}
     

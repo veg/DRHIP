@@ -363,24 +363,14 @@ class CfelMethod(HyPhyMethod):
 
                     # Composition for this group
                     comp_counts = composition_all.get(group, {})
-                    comp_list = [f"{aa}:{count}" for aa, count in comp_counts.items()]
-                    comparison_data[site_id][group]['composition'] = ','.join(comp_list) if comp_list else 'NA'
+                    comparison_data[site_id][group]['composition'] = su.format_composition(comp_counts)
 
                     # Majority residue for this group
-                    sorted_residues = sorted(
-                        [[aa, count] for aa, count in comp_counts.items()],
-                        key=lambda d: -d[1]
-                    )
-                    if sorted_residues:
-                        comparison_data[site_id][group]['majority_residue'] = sorted_residues[0][0]
-                    else:
-                        comparison_data[site_id][group]['majority_residue'] = 'NA'
+                    comparison_data[site_id][group]['majority_residue'] = su.get_majority_residue(comp_counts)
 
                     # Substitutions for this group
                     sub_counts = subs_all.get(group, {})
-                    # Ignore housekeeping keys if any
-                    subs_list = [f"{sub}:{count}" for sub, count in sub_counts.items() if sub and sub != 'transition']
-                    comparison_data[site_id][group]['substitutions'] = ','.join(subs_list) if subs_list else 'NA'
+                    comparison_data[site_id][group]['substitutions'] = su.format_substitutions(sub_counts)
         
         return comparison_data
         
