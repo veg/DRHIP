@@ -171,6 +171,8 @@ class BustedMethod(HyPhyMethod):
             }
             
             # Calculate majority residue for test (internal) branches
+            # TODO: spoiler alert: they're all test branches (including the leaves) as currently parsed by newick_parser 
+            # (ie with no starting internal branch labels)
             if 'test' in composition and composition['test']:
                 sorted_residues = sorted(
                     [[aa, count] for aa, count in composition['test'].items()],
@@ -237,106 +239,3 @@ class BustedMethod(HyPhyMethod):
             'majority_residue',
             'composition'
         ]
-        
-    def process_comparison_site_data(self, results: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        """Process comparison group-specific site data from BUSTED results.
-        
-        Args:
-            results: Raw BUSTED results dictionary
-            
-        Returns:
-            Dictionary mapping site IDs to dictionaries of comparison group-specific data
-        """
-        # Skip processing if no comparison groups or no MLE content
-        if not self._comparison_groups or not self.has_mle_content(results):
-            return {}
-            
-        # Initialize result dictionary
-        comparison_data = {}
-        
-        # Check if we have substitutions data
-        if 'substitutions' not in results or '0' not in results['substitutions']:
-            return comparison_data
-            
-        # Get the substitutions data
-        substitutions = results['substitutions']['0']
-        
-        # Get the tree
-        if 'input' not in results or 'trees' not in results['input'] or '0' not in results['input']['trees']:
-            return comparison_data
-            
-        # Parse the tree
-        internal_branches = {}
-        tree = tree_helpers.newick_parser(results['input']['trees']['0'], {}, internal_branches)
-        
-        # Process each site
-        for site_idx, site_subs in substitutions.items():
-            site_num = int(site_idx)
-            
-            # Initialize composition and substitution counters
-            composition = {}
-            subs = {}
-            
-            # Initialize composition and substitution dictionaries
-            for group in self._comparison_groups:
-                # Traverse the tree to collect composition and substitution data for each group
-                tree_helpers.traverse_tree(
-                    tree, 
-                    None, 
-                    site_subs, 
-                    internal_branches, 
-                    composition, 
-                    subs, 
-                    group  # Use each group as leaf label
-                )
-            
-            # Initialize site comparison data
-            site_comparison_data = {}
-            
-            # Use sequence_utils to process the sequence data for this site
-            # Convert composition dict of Counters to the format expected by sequence_utils
-            group_sequences = {}
-            for group_name, aa_counter in composition.items():
-                if aa_counter:  # Only process non-empty counters
-                    group_sequences[group_name] = aa_counter
-            
-            # Process sequence data using our improved function
-            if group_sequences:
-                site_metrics = su.process_sequence_data(group_sequences)
-                
-                # Add site metrics to comparison data for each group
-                for group_name in self._comparison_groups:
-                    if group_name in group_sequences:
-                        # Initialize group data if not exists
-                        if group_name not in site_comparison_data:
-                            site_comparison_data[group_name] = {}
-                            
-                        # Add metrics for this group
-                        site_comparison_data[group_name].update({
-                            'unique_aas': ','.join(site_metrics.get('unique_aas', {}).get(group_name, [])) or 'NA',
-                            'has_diff_majority': site_metrics.get('has_diff_majority', False),
-                            'aa_diversity': site_metrics.get(f'{group_name}_diversity', 0),
-                            'majority_residue': site_metrics.get(f'{group_name}_majority', '-')
-                        })
-                        
-                        # Add composition data
-                        if f'{group_name}_composition' in site_metrics:
-                            formatted_comp = su.format_composition(site_metrics[f'{group_name}_composition'])
-                            site_comparison_data[group_name]['composition'] = formatted_comp
-            
-            # Add comparison data for any groups that weren't processed
-            for group in self._comparison_groups:
-                if group not in site_comparison_data and group in composition and composition[group]:
-                    site_comparison_data[group] = {
-                        'unique_aas': 'NA',
-                        'has_diff_majority': False,
-                        'aa_diversity': 0,
-                        'majority_residue': '-',
-                        'composition': ''
-                    }
-                    
-            # Only add sites with comparison data
-            if site_comparison_data:
-                comparison_data[site_num] = site_comparison_data
-        
-        return comparison_data
