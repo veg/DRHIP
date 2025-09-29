@@ -4,6 +4,8 @@ CFEL (Contrast-FEL) method implementation.
 
 from typing import Dict, Any, List
 
+from ..utils import tree_helpers
+from ..utils import sequence_utils as su
 from .base import HyPhyMethod
 
 class CfelMethod(HyPhyMethod):
@@ -138,7 +140,7 @@ class CfelMethod(HyPhyMethod):
         if self.has_mle_headers(results):
             headers = results["MLE"]["headers"]
             # Always use the comparison groups we determined
-            self._build_column_maps(headers, list(by_type.keys()))
+            self._build_column_maps(headers, list(by_type.keys()))  # swap headers with results?
         
         # Initialize comparison data
         comparison_data = {}
@@ -309,6 +311,67 @@ class CfelMethod(HyPhyMethod):
                 
                 comparison_data[site_id] = site_comparison_data
         
+        # Check if we have substitutions data
+        if 'substitutions' in results and '0' in results['substitutions']:
+            substitutions = results['substitutions']['0']
+
+            # Check if we have the tree  
+            if 'input' not in results or 'trees' not in results['input'] or '0' not in results['input']['trees']:
+                return comparison_data
+
+            # Parse the tree
+            track_tags = {}
+            try:
+                tree = tree_helpers.newick_parser(
+                    results['input']['trees']['0'],
+                    False,
+                    track_tags=track_tags,
+                    optional_starting_tags=tested
+                )
+            except Exception:
+                return comparison_data
+
+            # Process each site present in substitutions
+            for site_idx, site_subs in substitutions.items():
+                site_id = str(int(site_idx) + 1)  # 1-based index as string
+
+                # Traverse once per site to get composition and substitutions by tag
+                composition_all = {}
+                subs_all = {}
+                try:
+                    tree_helpers.traverse_tree(
+                        tree,
+                        None,
+                        site_subs,
+                        track_tags,  # track_tags SHOULD be the same as tested, but who knows
+                        composition_all,
+                        subs_all,
+                        None,  # do not overwrite leaf tags
+                        ignore_leaves=True
+                    )
+                except Exception:
+                    continue
+
+                # Ensure site entry exists
+                if site_id not in comparison_data:
+                    comparison_data[site_id] = {}
+
+                # Attach per-group composition and substitutions
+                for group in self._comparison_groups:
+                    if group not in comparison_data[site_id]:
+                        comparison_data[site_id][group] = {}
+
+                    # Composition for this group
+                    comp_counts = composition_all.get(group, {})
+                    comparison_data[site_id][group]['composition'] = su.format_composition(comp_counts)
+
+                    # Majority residue for this group
+                    comparison_data[site_id][group]['majority_residue'] = su.get_majority_residue(comp_counts)
+
+                    # Substitutions for this group
+                    sub_counts = subs_all.get(group, {})
+                    comparison_data[site_id][group]['substitutions'] = su.format_substitutions(sub_counts)
+        
         return comparison_data
         
     @staticmethod
@@ -329,6 +392,9 @@ class CfelMethod(HyPhyMethod):
         return [
             'cfel_marker',  # CFEL marker for this site in this comparison group
             'cfel_beta',         # Per-group beta value for this site
+            'composition',       # Per-group composition at this site
+            'substitutions',     # Per-group substitutions at this site
+            'majority_residue'   # Per-group majority residue at this site
         ]
         
     @staticmethod
