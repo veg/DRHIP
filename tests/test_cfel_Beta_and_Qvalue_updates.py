@@ -32,52 +32,51 @@ def _get_header_indices(results: Dict[str, Any]) -> Dict[str, int]:
     return header_indices
 
 
-@pytest.mark.parametrize(
-    "gene_basename",
-    [
-        # Use both available comparison CFEL datasets to make test robust
-        "pretend_DENV1_ref.part_NC_001477.1__capsid_protein_C__95-394_DENV1",
-        "pretend_DENV1_ref.part_NC_001477.1__membrane_glycoprotein",
-    ],
-)
-def test_cfel_diff_sites_count_from_qvalue(comparison_results_dir: str, gene_basename: str):
+def _list_cfel_basenames(comparison_results_dir: str):
+    dir_path = os.path.join(comparison_results_dir, "CONTRASTFEL")
+    basenames = []
+    if os.path.isdir(dir_path):
+        for file in os.listdir(dir_path):
+            if file.endswith(".CONTRASTFEL.json"):
+                basenames.append(file[: -len(".CONTRASTFEL.json")])
+    return sorted(basenames)
+
+
+def test_cfel_diff_sites_count_from_qvalue(comparison_results_dir: str):
     """CfelMethod.process_results should count diff_sites as rows with Q-value <= 0.20."""
-    results = _load_cfel_results(comparison_results_dir, gene_basename)
+    basenames = _list_cfel_basenames(comparison_results_dir)
+    assert basenames, "No CFEL comparison datasets found for testing"
 
-    # Compute expected diff_sites directly from raw JSON
-    headers = _get_header_indices(results)
-    q_idx = None
-    # Q-value header may vary in case
-    for k, idx in headers.items():
-        if k.lower().startswith("q-value"):
-            q_idx = idx
-            break
-    assert q_idx is not None, "Q-value column not found in CFEL headers"
+    for gene_basename in basenames:
+        results = _load_cfel_results(comparison_results_dir, gene_basename)
 
-    expected = 0
-    for row in results["MLE"]["content"]["0"]:
-        if q_idx < len(row):
-            try:
-                q = float(row[q_idx])
-            except (ValueError, TypeError):
-                continue
-            if q <= 0.20:
-                expected += 1
+        # Compute expected diff_sites directly from raw JSON
+        headers = _get_header_indices(results)
+        q_idx = None
+        # Q-value header may vary in case
+        for k, idx in headers.items():
+            if k.lower().startswith("q-value"):
+                q_idx = idx
+                break
+        assert q_idx is not None, "Q-value column not found in CFEL headers"
 
-    method = CfelMethod()
-    processed = method.process_results(results)
-    assert "diff_sites" in processed
-    assert processed["diff_sites"] == expected
+        expected = 0
+        for row in results["MLE"]["content"]["0"]:
+            if q_idx < len(row):
+                try:
+                    q = float(row[q_idx])
+                except (ValueError, TypeError):
+                    continue
+                if q <= 0.20:
+                    expected += 1
+
+        method = CfelMethod()
+        processed = method.process_results(results)
+        assert "diff_sites" in processed
+        assert processed["diff_sites"] == expected
 
 
-@pytest.mark.parametrize(
-    "gene_basename",
-    [
-        "pretend_DENV1_ref.part_NC_001477.1__capsid_protein_C__95-394_DENV1",
-        "pretend_DENV1_ref.part_NC_001477.1__membrane_glycoprotein",
-    ],
-)
-def test_cfel_marker_and_beta_formatting(comparison_results_dir: str, gene_basename: str):
+def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
     """
     CfelMethod.process_comparison_site_data should:
     - set cfel_marker to formatted Q-value ("{q:.3f}") when q <= 0.20, else '-'
@@ -86,87 +85,91 @@ def test_cfel_marker_and_beta_formatting(comparison_results_dir: str, gene_basen
         * scientific notation with 3 decimals if |beta|<1e-3 or >= 1e3
         * fixed-point with 4 decimals otherwise
     """
-    results = _load_cfel_results(comparison_results_dir, gene_basename)
+    basenames = _list_cfel_basenames(comparison_results_dir)
+    assert basenames, "No CFEL comparison datasets found for testing"
 
-    # Determine comparison groups from tested map
-    tested = results.get("tested", {}).get("0", {})
-    groups = sorted(set(tested.values()))
-    assert groups, "No comparison groups detected in CFEL test data"
+    for gene_basename in basenames:
+        results = _load_cfel_results(comparison_results_dir, gene_basename)
 
-    method = CfelMethod().set_comparison_groups(groups)
-    site_data = method.process_comparison_site_data(results)
+        # Determine comparison groups from tested map
+        tested = results.get("tested", {}).get("0", {})
+        groups = sorted(set(tested.values()))
+        assert groups, "No comparison groups detected in CFEL test data"
 
-    # Build our own header index map for beta and Q-value
-    headers = _get_header_indices(results)
+        method = CfelMethod().set_comparison_groups(groups)
+        site_data = method.process_comparison_site_data(results)
 
-    # Map group -> beta column index using headers like 'beta (group)'
-    beta_idx_map: Dict[str, int] = {}
-    for k, idx in headers.items():
-        lk = k.lower()
-        if lk.startswith("beta ") and "(" in k and ")" in k:
-            group_name = k[k.find("(") + 1 : k.find(")")]
-            if group_name in groups:
-                beta_idx_map[group_name] = idx
+        # Build our own header index map for beta and Q-value
+        headers = _get_header_indices(results)
 
-    # Locate the Q-value column index
-    q_idx = None
-    for k, idx in headers.items():
-        if k.lower().startswith("q-value"):
-            q_idx = idx
-            break
-    assert q_idx is not None, "Q-value column not found in CFEL headers"
+        # Map group -> beta column index using headers like 'beta (group)'
+        beta_idx_map: Dict[str, int] = {}
+        for k, idx in headers.items():
+            lk = k.lower()
+            if lk.startswith("beta ") and "(" in k and ")" in k:
+                group_name = k[k.find("(") + 1 : k.find(")")]
+                if group_name in groups:
+                    beta_idx_map[group_name] = idx
 
-    rows = results["MLE"]["content"]["0"]
+        # Locate the Q-value column index
+        q_idx = None
+        for k, idx in headers.items():
+            if k.lower().startswith("q-value"):
+                q_idx = idx
+                break
+        assert q_idx is not None, "Q-value column not found in CFEL headers"
 
-    # Validate a sample of sites (e.g., first 30 or all if fewer)
-    sample_count = min(30, len(rows))
-    for site_zero_idx in range(sample_count):
-        site_id = str(site_zero_idx + 1)
-        row = rows[site_zero_idx]
-        # Expected marker from Q-value
-        expected_marker = "NA"
-        if q_idx < len(row):
-            try:
-                q = float(row[q_idx])
-                expected_marker = f"{q:.3f}" if q <= 0.20 else "-"
-            except (ValueError, TypeError):
-                expected_marker = "NA"
+        rows = results["MLE"]["content"]["0"]
 
-        for group in groups:
-            assert site_id in site_data, f"Missing site {site_id} in comparison data"
-            assert group in site_data[site_id], f"Missing group {group} at site {site_id}"
-
-            gdata = site_data[site_id][group]
-
-            # cfel_marker formatting
-            assert "cfel_marker" in gdata
-            marker = gdata["cfel_marker"]
-            # Either '-', or a numeric string with exactly 3 decimals
-            assert marker == expected_marker or marker == "NA"
-            if marker not in ("-", "NA"):
-                assert re.fullmatch(r"\d*\.\d{3}", marker) is not None
-
-            # cfel_beta formatting
-            assert "cfel_beta" in gdata
-            beta_str = gdata["cfel_beta"]
-            # Compute expected formatting from raw value if available
-            idx = beta_idx_map.get(group, -1)
-            if 0 <= idx < len(row):
+        # Validate a sample of sites (e.g., first 30 or all if fewer)
+        sample_count = min(30, len(rows))
+        for site_zero_idx in range(sample_count):
+            site_id = str(site_zero_idx + 1)
+            row = rows[site_zero_idx]
+            # Expected marker from Q-value
+            expected_marker = "NA"
+            if q_idx < len(row):
                 try:
-                    beta_val = float(row[idx])
-                    if beta_val == 0.0:
-                        expected_beta = "0.000"
-                    else:
-                        ab = abs(beta_val)
-                        if ab < 1e-3 or ab >= 1e3:
-                            expected_beta = f"{beta_val:.3e}"
-                        else:
-                            expected_beta = f"{beta_val:.4f}"
-                    assert beta_str == expected_beta
+                    q = float(row[q_idx])
+                    expected_marker = f"{q:.3f}" if q <= 0.20 else "-"
                 except (ValueError, TypeError):
+                    expected_marker = "NA"
+
+            for group in groups:
+                assert site_id in site_data, f"Missing site {site_id} in comparison data"
+                assert group in site_data[site_id], f"Missing group {group} at site {site_id}"
+
+                gdata = site_data[site_id][group]
+
+                # cfel_marker formatting
+                assert "cfel_marker" in gdata
+                marker = gdata["cfel_marker"]
+                # Either '-', or a numeric string with exactly 3 decimals
+                assert marker == expected_marker or marker == "NA"
+                if marker not in ("-", "NA"):
+                    assert re.fullmatch(r"\d*\.\d{3}", marker) is not None
+
+                # cfel_beta formatting
+                assert "cfel_beta" in gdata
+                beta_str = gdata["cfel_beta"]
+                # Compute expected formatting from raw value if available
+                idx = beta_idx_map.get(group, -1)
+                if 0 <= idx < len(row):
+                    try:
+                        beta_val = float(row[idx])
+                        if beta_val == 0.0:
+                            expected_beta = "0.000"
+                        else:
+                            ab = abs(beta_val)
+                            if ab < 1e-3 or ab >= 1e3:
+                                expected_beta = f"{beta_val:.3e}"
+                            else:
+                                expected_beta = f"{beta_val:.4f}"
+                        assert beta_str == expected_beta
+                    except (ValueError, TypeError):
+                        assert beta_str == "NA"
+                else:
                     assert beta_str == "NA"
-            else:
-                assert beta_str == "NA"
 
 
 def test_cfel_get_comparison_group_site_fields_contains_expected():
