@@ -137,10 +137,11 @@ class CfelMethod(HyPhyMethod):
                 by_type[tag].append(branch)
         
         # Build column lookup maps for site analysis
-        if self.has_mle_headers(results):
-            headers = results["MLE"]["headers"]
-            # Always use the comparison groups we determined
-            self._build_column_maps(headers, list(by_type.keys()))  # swap headers with results?
+        # if self.has_mle_headers(results):
+        #     headers = results["MLE"]["headers"]
+        #     # Always use the comparison groups we determined
+        #     self._build_column_maps(headers, list(by_type.keys()))  # swap headers with results?
+        self._build_column_maps(results, list(by_type.keys()))
         
         # Initialize comparison data
         comparison_data = {}
