@@ -86,8 +86,8 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
 
             if missing_fields:
                 print(f"WARNING: {method.name} for {gene} is missing required fields: {missing_fields}. Final output may be incomplete. Check that you're using the correct version of HyPhy.")
-            else:
-                method_results[method.name] = result
+
+            method_results[method.name] = result
         else:
             missing_methods.append(method.name)
     

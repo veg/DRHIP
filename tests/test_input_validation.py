@@ -154,6 +154,34 @@ def test_process_gene_warns_invalid_busted(results_dir, capsys):
                 },
             },
         },
+        "fits":{
+            'Unconstrained model': {
+                'Rate Distributions': {
+                    "Test":{
+                        "0":{
+                        "omega":226.0589415365084,
+                        "proportion":0
+                        },
+                        "1":{
+                        "omega":0.04198616898833647,
+                        "proportion":0.9147510556650086
+                        },
+                        "2":{
+                        "omega":0.1430120656070995,
+                        "proportion":0.08477641331245425
+                        },
+                        "3":{
+                        "omega":1,
+                        "proportion":0.0004725310225371633
+                        }
+                    }
+                }
+            }
+        },
+        "test results":{
+            "LRT":0,
+            "p-value":0.5
+        },
         "input":{
             "trees":{
                 "0":"(PP564823_1_2023_10_06,((((((AY732475_1_1994,AY732480_1_1994,(((PP563832_1_2023_08_28,PP563826_1_2023_08_21,PP563831_1_2023_08_29)Node12,(PP563838_1_2023_09_30,PP563839_1_2023_09_29)Node17)Node11,PP563845_1_2023_10_22)Node10,(AY732482_1_2001,AB178040_1_2002)Node21)Node7,AY726553_1_2002)Node6,AY708047_1_2001)Node5,((AY732478_1_1991,AY726552_1_2002,AY732477_1_1991)Node29,AF298808_1_1998)Node28)Node4,(AB204803_1_2004,AB195673_1_2003)Node35)Node3,AF298807_1_1998)Node2,AY732474_1_1980)"
@@ -184,15 +212,28 @@ def test_process_gene_warns_invalid_busted(results_dir, capsys):
             assert 'WARNING: BUSTED for capsid_protein_C is missing required fields' in captured.out
             assert gene_name in captured.out
 
-            # Validate output exists and contains non-BUSTED fields
+            # Validate summary output exists and contains BUSTED and non-BUSTED fields
             summary_file = os.path.join(output_dir, f'{gene_name}_summary.csv')
             assert os.path.exists(summary_file)
             with open(summary_file, 'r') as f:
                 reader = csv.DictReader(f)
                 row = next(reader)
                 # Ensure that present BUSTED fields are present in the output
-                assert 'BUSTED_pval' not in row
-                assert 'BUSTED_omega3' not in row
+                assert 'BUSTED_pval' in row
+                assert 'BUSTED_omega3' in row
                 # FEL/MEME fields should still be present
                 assert 'negative_sites' in row
                 assert 'N' in row
+
+            # Validate sites output exists and contains non-BUSTED fields, but not BUSTED substitution data
+            sites_file = os.path.join(output_dir, f'{gene_name}_sites.csv')
+            assert os.path.exists(sites_file)
+            with open(sites_file, 'r') as f:
+                reader = csv.DictReader(f)
+                row = next(reader)
+                # Ensure that absent BUSTED fields are absent in the output
+                assert 'composition' not in row
+                assert 'substitutions' not in row
+                # FEL/PRIME fields should still be present
+                assert 'fel_selection' in row
+                assert 'prime_marker' in row
