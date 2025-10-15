@@ -15,6 +15,18 @@ class BustedMethod(HyPhyMethod):
         """Initialize BUSTED method."""
         super().__init__("BUSTED", "BUSTED.json")
     
+    def validate_input_json(self, results: Dict[str, Any]) -> List[str]:
+        missing = []
+        # Required for summary fields and omega3 extraction
+        required_paths = [
+            'test results.p-value', # BUSTED p-value
+            'fits.Unconstrained model.Rate Distributions.Test',  # omega estimates & proportions
+            'input.trees.0', # input tree
+            'substitutions.0' # inferred substitutions
+        ]
+        missing.extend(self.validate_required_paths(results, required_paths))
+        return missing
+    
     def get_omega3(self, fit: Dict[str, Any]) -> Dict[str, float]:
         """Get the omega3 value and proportion from a model fit.
         

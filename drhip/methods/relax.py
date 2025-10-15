@@ -14,6 +14,15 @@ class RelaxMethod(HyPhyMethod):
         super().__init__("RELAX", "RELAX.json")
         self._comparison_groups = None
     
+    def validate_input_json(self, results: Dict[str, Any]) -> List[str]:
+        missing = []
+        required_paths = [
+            'test results.p-value',
+            'test results.relaxation or intensification parameter'
+        ]
+        missing.extend(self.validate_required_paths(results, required_paths))
+        return missing
+    
     def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process RELAX results.
         

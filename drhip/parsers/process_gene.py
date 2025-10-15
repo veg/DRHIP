@@ -75,7 +75,19 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
         file_path = method.get_file_path(results_path, gene)
         result = fh.load_json(file_path)
         if result:
-            method_results[method.name] = result
+            # Per-method JSON validation
+            missing_fields = []
+            if hasattr(method, 'validate_input_json'):
+                try:
+                    missing_fields = method.validate_input_json(result) or []
+                except Exception as e:
+                    print(f"Error during validation for {method.name} on {gene}: {e}")
+                    missing_fields = ['<validation error>']
+
+            if missing_fields:
+                print(f"WARNING: {method.name} for {gene} is missing required fields: {missing_fields}. Final output may be incomplete. Check that you're using the correct version of HyPhy.")
+            else:
+                method_results[method.name] = result
         else:
             missing_methods.append(method.name)
     

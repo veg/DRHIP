@@ -13,6 +13,14 @@ class MemeMethod(HyPhyMethod):
         """Initialize MEME method."""
         super().__init__("MEME", "MEME.json")
     
+    def validate_input_json(self, results: Dict[str, Any]) -> List[str]:
+        missing = []
+        missing.extend(self.validate_required_paths(results, ['MLE.headers', 'MLE.content.0']))
+        missing_headers = self.missing_mle_headers(results, ['p-value'])
+        if missing_headers:
+            missing.extend([f"MLE.headers:{h}" for h in missing_headers])
+        return missing
+    
     def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process MEME results.
         

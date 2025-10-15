@@ -19,6 +19,20 @@ class CfelMethod(HyPhyMethod):
         self._beta_idx_map = {}
         self._subs_idx_map = {}
     
+    def validate_input_json(self, results: Dict[str, Any]) -> List[str]:
+        missing = []
+        required_paths = [
+            'MLE.headers',   # site-specific headers
+            'MLE.content.0', # site-specific content
+            'tested.0',      # tested branches
+            'branch attributes.0', # branch attributes (e.g. branch lengths)
+            'fits.Global MG94xREV.Rate Distributions', # contains group-specific dN/dS rates
+            'input.trees.0', # input tree
+            'substitutions.0' # inferred substitutions
+        ]
+        missing.extend(self.validate_required_paths(results, required_paths))
+        return missing
+    
     def _build_column_maps(self, results: Dict[str, Any], comparison_groups: List[str]) -> None:
         """Build column lookup maps for the CFEL data using base helper functions.
         

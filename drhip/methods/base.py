@@ -97,6 +97,35 @@ class HyPhyMethod(ABC):
         """
         return []
     
+    def validate_input_json(self, results: Dict[str, Any]) -> List[str]:
+        return []
+    
+    def _path_exists(self, data: Dict[str, Any], path: str) -> bool:
+        current = data
+        for key in path.split('.'):
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                return False
+        return True
+    
+    def validate_required_paths(self, results: Dict[str, Any], required_paths: List[str]) -> List[str]:
+        missing = []
+        for p in required_paths:
+            if not self._path_exists(results, p):
+                missing.append(p)
+        return missing
+    
+    def missing_mle_headers(self, results: Dict[str, Any], header_names: List[str]) -> List[str]:
+        if not self.has_mle_headers(results):
+            return header_names
+        header_indices = self.get_header_indices(results)
+        missing = []
+        for name in header_names:
+            if name not in header_indices:
+                missing.append(name)
+        return missing
+    
     def has_mle_content(self, results: Dict[str, Any]) -> bool:
         """Check if results have MLE content structure.
         
