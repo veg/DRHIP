@@ -40,42 +40,42 @@ class BustedMethod(HyPhyMethod):
         omega_idx = str(len(omegas) - 1)
         return omegas[omega_idx]
         
-    def calculate_rate_distribution_stats(self, results: Dict[str, Any],
-                                     model_name: str = 'Unconstrained model',
-                                     distribution_name: str = 'global') -> Dict[str, float]:
-        """Calculate statistics from rate distributions.
+    # def calculate_rate_distribution_stats(self, results: Dict[str, Any],
+    #                                  model_name: str = 'Unconstrained model',
+    #                                  distribution_name: str = 'global') -> Dict[str, float]:
+    #     """Calculate statistics from rate distributions.
         
-        This helper extracts rate distributions and calculates statistics like dN/dS.
+    #     This helper extracts rate distributions and calculates statistics like dN/dS.
         
-        Args:
-            results: Raw results dictionary from JSON file
-            model_name: Name of the model to extract rates from (default: 'Unconstrained model')
-            distribution_name: Name of the distribution to use (default: 'global')
+    #     Args:
+    #         results: Raw results dictionary from JSON file
+    #         model_name: Name of the model to extract rates from (default: 'Unconstrained model')
+    #         distribution_name: Name of the distribution to use (default: 'global')
             
-        Returns:
-            Dictionary with calculated statistics (e.g., {'dN/dS': 0.5})
-        """
-        stats = {'dN/dS': 0.0}
+    #     Returns:
+    #         Dictionary with calculated statistics (e.g., {'dN/dS': 0.5})
+    #     """
+    #     stats = {}
         
-        try:
-            if 'fits' in results and model_name in results['fits']:
-                model_fit = results['fits'][model_name]
-                if 'Rate Distributions' in model_fit and distribution_name in model_fit['Rate Distributions']:
-                    rates = model_fit['Rate Distributions'][distribution_name]
+    #     try:
+    #         if 'fits' in results and model_name in results['fits']:
+    #             model_fit = results['fits'][model_name]
+    #             if 'Rate Distributions' in model_fit and distribution_name in model_fit['Rate Distributions']:
+    #                 rates = model_fit['Rate Distributions'][distribution_name]
                     
-                    # Calculate weighted average of omega values
-                    omega_sum = 0.0
-                    for rate in rates:
-                        # Handle different formats (weight or proportion)
-                        weight = rate.get('weight', rate.get('proportion', 0.0))
-                        omega_sum += rate['omega'] * weight
+    #                 # Calculate weighted average of omega values
+    #                 omega_sum = 0.0
+    #                 for rate in rates:
+    #                     # Handle different formats (weight or proportion)
+    #                     weight = rate.get('weight', rate.get('proportion', 0.0))
+    #                     omega_sum += rate['omega'] * weight
                     
-                    stats['dN/dS'] = omega_sum
-        except Exception as e:
-            print(f"Error calculating rate distribution stats: {e}")
-            # Keep default values on error
+    #                 stats['dN/dS'] = omega_sum
+    #     except Exception as e:
+    #         print(f"Error calculating rate distribution stats: {e}")
+    #         # Keep default values on error
         
-        return stats
+    #     return stats
     
     def process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Process BUSTED results.
@@ -105,15 +105,15 @@ class BustedMethod(HyPhyMethod):
         else:
             processed['BUSTED_prop_sites_in_omega3'] = 0.0
         
-        # Calculate dN/dS using the helper function
-        dnds_stats = self.calculate_rate_distribution_stats(
-            results, 
-            model_name='Unconstrained model', 
-            distribution_name='global'
-        )
+        # # Calculate dN/dS using the helper function
+        # dnds_stats = self.calculate_rate_distribution_stats(
+        #     results, 
+        #     model_name='Unconstrained model', 
+        #     distribution_name='global'
+        # )
         
-        # Update processed results with dN/dS
-        processed.update(dnds_stats)
+        # # Update processed results with dN/dS
+        # processed.update(dnds_stats)
         
         return processed
     

@@ -137,7 +137,7 @@ def test_process_gene_warns_invalid_busted(results_dir, capsys):
     gene_name = 'capsid_protein_C'
 
     # Use a temp copy of the real results, but replace BUSTED JSON for the gene 
-    # with a fake json that's missing the "fits" and "substitutions" fields
+    # with a fake json that's missing the "substitutions" fields
     results = {
         "tested":{
             "0":{
@@ -209,7 +209,7 @@ def test_process_gene_warns_invalid_busted(results_dir, capsys):
 
             # Capture logs and ensure BUSTED was skipped due to validation
             captured = capsys.readouterr()
-            assert 'WARNING: BUSTED for capsid_protein_C is missing required fields' in captured.out
+            assert "WARNING: BUSTED for capsid_protein_C is missing required fields: ['substitutions.0']." in captured.out
             assert gene_name in captured.out
 
             # Validate summary output exists and contains BUSTED and non-BUSTED fields
@@ -218,6 +218,7 @@ def test_process_gene_warns_invalid_busted(results_dir, capsys):
             with open(summary_file, 'r') as f:
                 reader = csv.DictReader(f)
                 row = next(reader)
+                print(row)
                 # Ensure that present BUSTED fields are present in the output
                 assert 'BUSTED_pval' in row
                 assert 'BUSTED_omega3' in row

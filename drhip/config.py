@@ -21,7 +21,6 @@ SUMMARY_FIELDNAMES = [
     'gene',
     'N',      # Number of sequences
     'T',      # Total branch length
-    'dN/dS',  # Overall dN/dS ratio
     'sites',  # Number of sites
     'diff_sites',
     'RELAX_K',
