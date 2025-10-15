@@ -217,7 +217,6 @@ def test_process_gene_warns_invalid_busted(results_dir, capsys):
             assert os.path.exists(summary_file)
             with open(summary_file, 'r') as f:
                 reader = csv.DictReader(f)
-                row = next(reader)
                 print(row)
                 # Ensure that present BUSTED fields are present in the output
                 assert 'BUSTED_pval' in row
