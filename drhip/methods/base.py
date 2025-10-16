@@ -230,23 +230,23 @@ class HyPhyMethod(ABC):
         if 'sites' not in common_fields and self.has_mle_content(results):
             common_fields['sites'] = len(results['MLE']['content']['0'])
         
-        # Extract number of sequences
-        if 'input' in results:
-            # Try different keys that might contain the number of sequences
-            if 'number of sequences' in results['input']:
-                common_fields['N'] = results['input']['number of sequences']
-            elif 'sequences' in results['input']:
-                common_fields['N'] = len(results['input']['sequences'])
-        
-        # If N not found in input, try to get from tested sequences
-        if 'N' not in common_fields and 'tested' in results and 'sequences' in results['tested']:
-            common_fields['N'] = len(results['tested']['sequences'])
+
+        # Get tested branches
+        if 'tested' in results and '0' in results['tested']:
+            tested_branches = {bn: val for bn,val in results['tested']['0'].items() if val == "test"}
+
+            # Extract number of tested branches
+            common_fields['N'] = len(tested_branches)
         
         # Extract total branch length
         if 'branch attributes' in results and '0' in results['branch attributes']:
             try:
                 branch_lengths = []
                 branch_data = results['branch attributes']['0']
+
+                # keep only tested branches
+                if tested_branches:
+                    branch_data = {bn: val for bn,val in branch_data.items() if bn in tested_branches}
                 
                 # Handle different formats of branch length data
                 for branch in branch_data.values():
