@@ -2,10 +2,11 @@
 Tests for process_gene module.
 """
 
-import os
 import csv
-import tempfile
+import os
 import shutil
+import tempfile
+
 from drhip.parsers.process_gene import process_gene
 
 
@@ -32,7 +33,7 @@ def test_process_gene_summary_content(results_dir):
 
         # Read summary file
         summary_file = os.path.join(output_dir, f"{gene_name}_summary.csv")
-        with open(summary_file, "r") as f:
+        with open(summary_file) as f:
             reader = csv.DictReader(f)
             row = next(reader)
 
@@ -60,7 +61,7 @@ def test_process_gene_sites_content(results_dir):
 
         # Read sites file
         sites_file = os.path.join(output_dir, f"{gene_name}_sites.csv")
-        with open(sites_file, "r") as f:
+        with open(sites_file) as f:
             reader = csv.DictReader(f)
             sites = list(reader)
 
@@ -114,7 +115,7 @@ def test_process_gene_comparison_data(comparison_results_dir):
         ), "Comparison summary file not created"
 
         # Validate comparison site file contents
-        with open(comparison_site_file, "r") as f:
+        with open(comparison_site_file) as f:
             reader = csv.DictReader(f)
             comp_sites = list(reader)
 
@@ -138,7 +139,7 @@ def test_process_gene_comparison_data(comparison_results_dir):
             ), "No method-specific fields found in comparison site data"
 
         # Validate comparison summary file contents
-        with open(comparison_summary_file, "r") as f:
+        with open(comparison_summary_file) as f:
             reader = csv.DictReader(f)
             comp_summaries = list(reader)
 
@@ -212,10 +213,10 @@ def test_process_gene_thread_safety(results_dir):
                 assert os.path.exists(sites_file)
 
                 # Verify files are valid CSV
-                with open(summary_file, "r") as f:
+                with open(summary_file) as f:
                     reader = csv.DictReader(f)
                     assert len(list(reader)) > 0
 
-                with open(sites_file, "r") as f:
+                with open(sites_file) as f:
                     reader = csv.DictReader(f)
                     assert len(list(reader)) > 0

@@ -7,21 +7,21 @@ Authors:
     Danielle Callan (dcallan@temple.edu)
 """
 
-import os
 import csv
+import os
 import threading
-from typing import Dict, Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from ..config import SUMMARY_FIELDNAMES, SITES_FIELDNAMES, DEFAULT_COMPARISON_GROUPS
+from ..config import DEFAULT_COMPARISON_GROUPS, SITES_FIELDNAMES, SUMMARY_FIELDNAMES
+from ..methods import HyPhyMethodRegistry
 from ..utils import file_handlers as fh
 from ..utils.result_helpers import (
-    merge_method_data,
-    ensure_ordered_fields,
-    detect_comparison_groups,
     collect_method_fields,
+    detect_comparison_groups,
+    ensure_ordered_fields,
+    merge_method_data,
     validate_fields,
 )
-from ..methods import HyPhyMethodRegistry
 
 # Define a lock for synchronizing writes to the output files
 write_lock = threading.Lock()

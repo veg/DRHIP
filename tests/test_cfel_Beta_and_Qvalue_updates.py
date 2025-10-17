@@ -8,7 +8,7 @@ Tests covering PR #7 (CFEL fixes):
 import json
 import os
 import re
-from typing import Dict, Any
+from typing import Any, Dict
 
 import pytest
 
@@ -23,7 +23,7 @@ def _load_cfel_results(
         "CONTRASTFEL",
         f"{gene_basename}.CONTRASTFEL.json",
     )
-    with open(path, "r") as f:
+    with open(path) as f:
         return json.load(f)
 
 

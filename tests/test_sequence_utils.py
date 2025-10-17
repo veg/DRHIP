@@ -2,8 +2,10 @@
 Tests for sequence utilities.
 """
 
-import pytest
 from collections import Counter
+
+import pytest
+
 from drhip.utils import sequence_utils as su
 
 

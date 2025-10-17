@@ -5,10 +5,10 @@ Tests covering PR #11 for CFEL comparison outputs:
 """
 
 import json
-import os
-from typing import Dict, Any, List
-
 import math
+import os
+from typing import Any, Dict, List
+
 import pytest
 
 from drhip.methods.cfel import CfelMethod
@@ -22,7 +22,7 @@ def _load_cfel_results(
         "CONTRASTFEL",
         f"{gene_basename}.CONTRASTFEL.json",
     )
-    with open(path, "r") as f:
+    with open(path) as f:
         return json.load(f)
 
 

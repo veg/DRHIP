@@ -1,4 +1,8 @@
 # DRHIP: Data Reduction for HyPhy with Inference Processing
+
+[![Tests](https://github.com/veg/hyphy-results-toolkit/actions/workflows/tests.yml/badge.svg)](https://github.com/veg/hyphy-results-toolkit/actions/workflows/tests.yml)
+[![Lint](https://github.com/veg/hyphy-results-toolkit/actions/workflows/lint.yml/badge.svg)](https://github.com/veg/hyphy-results-toolkit/actions/workflows/lint.yml)
+
 A Python toolkit for analyzing HyPhy results. Process and summarize evolutionary selection analysis results across multiple methods and genes.
 
 ## Installation
@@ -41,6 +45,7 @@ pip install -e .
 - Site-specific analysis with conservation tracking
 - Thread-safe output handling
 - **Combined output files** across all genes for easy analysis
+- **Backward compatibility** with older HyPhy versions (graceful handling of missing fields)
 
 ## Usage
 
@@ -131,12 +136,12 @@ Example for adding a new summary field to BUSTED:
 ```python
 def process_results(self, results):
     summary_data = super().process_results(results)
-    
+
     # Add your new field
     summary_data['new_field_name'] = self._extract_new_field(results)
-    
+
     return summary_data
-    
+
 def _extract_new_field(self, results):
     # Logic to extract the new field from results
     # Return 'NA' if data is missing or invalid
@@ -183,11 +188,11 @@ from .base import HyPhyMethod
 class NewMethod(HyPhyMethod):
     def __init__(self):
         super().__init__(name='NEW_METHOD', file_suffix='NEW_METHOD.json')
-        
+
     def process_results(self, results):
         # Process and return summary data
         return {...}
-        
+
     def process_site_data(self, results):
         # Process and return site-specific data
         return {...}
@@ -204,7 +209,7 @@ self.register(NewMethod())
 
 Comparison groups represent different sets of branches in the phylogenetic tree (e.g., 'foreground' vs 'background', or 'test' vs 'reference') that are being compared for evolutionary selection differences:
 
-1. **What are comparison groups**: 
+1. **What are comparison groups**:
    - Groups of branches in the phylogenetic tree labeled for comparative analysis
    - Used by methods like Contrast-FEL and RELAX to compare selection pressures between different lineages
    - Typically labeled as 'test'/'reference', 'foreground'/'background', or custom labels
@@ -240,32 +245,60 @@ Comparison groups represent different sets of branches in the phylogenetic tree 
 
 ## Development and Testing
 
-### Setting up Development Environment
+For detailed information about contributing to DRHIP, including development setup, testing guidelines, and code quality standards, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Quick Start for Developers
 
 Install the package with development dependencies:
 
 ```bash
+# Install with dev dependencies
 pip install -e ".[dev]"
+
+# Install pre-commit hooks for automatic code quality checks
+make pre-commit-install
 ```
 
 ### Running Tests
 
-To run the test suite:
-
 ```bash
-pytest tests/
+# Run all tests
+make test
+
+# Run tests with coverage
+make test-cov
+
+# Or use pytest directly
+pytest tests/ -v
 ```
 
-To run tests with coverage reporting:
+### Code Quality
 
 ```bash
-pytest --cov=drhip tests/
+# Check code quality (runs ruff, black, isort)
+make lint
+
+# Auto-format code
+make format
 ```
+
+### Continuous Integration
+
+This project uses GitHub Actions for:
+- **Automated testing** on Python 3.8, 3.9, 3.10, 3.11 (Ubuntu and macOS)
+- **Code quality checks** (linting and formatting)
+- **Coverage reporting**
+
+All tests must pass before merging pull requests.
+
+### Test Coverage
 
 The test suite includes:
-- Unit tests for all HyPhy analysis methods
+- Unit tests for all HyPhy analysis methods (BUSTED, FEL, MEME, PRIME, RELAX, CFEL)
+- **Backward compatibility tests** for older HyPhy versions
 - Integration tests for gene processing
 - Thread safety validation
+- Input validation tests
 - Minimal actual HyPhy output files for reliable testing
 
 ## Requirements

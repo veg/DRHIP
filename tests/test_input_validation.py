@@ -2,18 +2,15 @@
 Tests for input JSON validation and orchestrator skip behavior.
 """
 
-import os
+import csv
 import json
+import os
 import shutil
 import tempfile
-import csv
+
 import pytest
 
-from drhip.methods import (
-    BustedMethod,
-    FelMethod,
-    CfelMethod,
-)
+from drhip.methods import BustedMethod, CfelMethod, FelMethod
 from drhip.parsers.process_gene import process_gene
 
 
@@ -218,7 +215,7 @@ def test_process_gene_warns_invalid_busted(results_dir, capsys):
             # Validate summary output exists and contains BUSTED and non-BUSTED fields
             summary_file = os.path.join(output_dir, f"{gene_name}_summary.csv")
             assert os.path.exists(summary_file)
-            with open(summary_file, "r") as f:
+            with open(summary_file) as f:
                 reader = csv.DictReader(f)
                 row = next(reader)
                 # Ensure that present BUSTED fields are present in the output
@@ -231,7 +228,7 @@ def test_process_gene_warns_invalid_busted(results_dir, capsys):
             # Validate sites output exists and contains non-BUSTED fields, but not BUSTED substitution data
             sites_file = os.path.join(output_dir, f"{gene_name}_sites.csv")
             assert os.path.exists(sites_file)
-            with open(sites_file, "r") as f:
+            with open(sites_file) as f:
                 reader = csv.DictReader(f)
                 row = next(reader)
                 # Ensure that absent BUSTED fields are absent in the output

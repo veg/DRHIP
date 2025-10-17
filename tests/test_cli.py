@@ -2,10 +2,11 @@
 Tests for CLI functionality.
 """
 
+import csv
 import os
 import tempfile
-import csv
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from drhip.cli import combine_csv_files, main
@@ -36,7 +37,7 @@ def test_combine_csv_files():
             assert os.path.exists(output_file)
 
             # Check combined file content
-            with open(output_file, "r", newline="") as f:
+            with open(output_file, newline="") as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
                 rows.sort(key=lambda x: x.get("gene", ""))
@@ -79,7 +80,7 @@ def test_combine_csv_files_sites():
             assert os.path.exists(output_file)
 
             # Check combined file content
-            with open(output_file, "r", newline="") as f:
+            with open(output_file, newline="") as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
                 rows.sort(key=lambda x: x.get("gene", ""))
@@ -126,7 +127,7 @@ def test_combine_csv_files_comparison():
             assert os.path.exists(output_file)
 
             # Check combined file content
-            with open(output_file, "r", newline="") as f:
+            with open(output_file, newline="") as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
 

@@ -10,8 +10,8 @@ Authors:
     Danielle Callan (dcallan@temple.edu)
 """
 
-from typing import Dict, List
 from collections import Counter
+from typing import Dict, List
 
 
 def get_majority_residue(composition: Dict[str, Counter]) -> str:

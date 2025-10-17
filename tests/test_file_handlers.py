@@ -2,14 +2,15 @@
 Tests for file handling utilities.
 """
 
+import json
 import os
 import tempfile
-import json
-import pytest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
-from drhip.utils import file_handlers as fh
+import pytest
+
 from drhip.methods.registry import HyPhyMethodRegistry
+from drhip.utils import file_handlers as fh
 
 
 def test_get_genes():

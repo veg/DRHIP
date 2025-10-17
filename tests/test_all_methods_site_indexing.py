@@ -5,8 +5,8 @@ This test suite ensures that all methods use consistent site indexing (1-based)
 and that site data is properly aligned when combining results from different methods.
 """
 
-import os
 import json
+import os
 import unittest
 
 from drhip.methods import HyPhyMethodRegistry
@@ -64,7 +64,7 @@ class TestAllMethodsSiteIndexing(unittest.TestCase):
                 continue
 
             # Load method results
-            with open(self.method_files[method_name], "r") as f:
+            with open(self.method_files[method_name]) as f:
                 results = json.load(f)
 
             # Process site data
@@ -109,7 +109,7 @@ class TestAllMethodsSiteIndexing(unittest.TestCase):
             return
 
         # Load CFEL results
-        with open(self.method_files["CFEL"], "r") as f:
+        with open(self.method_files["CFEL"]) as f:
             results = json.load(f)
 
         # Process comparison site data
@@ -171,7 +171,7 @@ class TestAllMethodsSiteIndexing(unittest.TestCase):
                 continue
 
             # Load method results
-            with open(self.method_files[method_name], "r") as f:
+            with open(self.method_files[method_name]) as f:
                 results = json.load(f)
 
             # Process site data
@@ -222,7 +222,7 @@ class TestAllMethodsSiteIndexing(unittest.TestCase):
                 continue
 
             # Load method results
-            with open(self.method_files[method_name], "r") as f:
+            with open(self.method_files[method_name]) as f:
                 results = json.load(f)
 
             # Process site data

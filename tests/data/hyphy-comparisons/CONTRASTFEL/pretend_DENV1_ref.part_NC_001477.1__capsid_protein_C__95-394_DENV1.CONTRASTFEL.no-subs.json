@@ -101,7 +101,7 @@
       [7.61663278888091, 5.442110986742101e-07, 1.550297742081405e-05, 0, 0.9346562342752635, 1, -1, 0.5050749721447151],
       [0, 0, 0, 1, 1, 1, 1, 0],
       [0, 0, 0, 1, 1, 1, 1, 0],
-      [0, 0, 0, 1, 1, 1, 1, 0] 
+      [0, 0, 0, 1, 1, 1, 1, 0]
       ]
     },
    "headers":    [
@@ -112,7 +112,7 @@
     ["P-value (overall)", "P-value for the test that Foreground branches have different non-synonymous rates than the rest of the branches"],
     ["Q-value (overall)", "Q-value for the test that Foreground branches have different non-synonymous rates than the rest of the branches"],
     ["Permutation p-value", "Label permutation test for significant sites"],
-    ["Total branch length", "The total length of branches contributing to inference at this site, and used to scale beta-alpha"] 
+    ["Total branch length", "The total length of branches contributing to inference at this site, and used to scale beta-alpha"]
     ]
   },
  "analysis":{
@@ -198,7 +198,7 @@
  "data partitions":{
    "0":{
      "coverage":      [
-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99] 
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
       ],
      "name":"fel.filter.default"
     }
@@ -267,15 +267,15 @@
       [0.02749367841825353],
       [0.0132212670023302],
       [0.02341317633368553],
-      [0.009744994946783913] 
+      [0.009744994946783913]
       ],
      "Log Likelihood":-522.6293479062649,
      "Rate Distributions":{
        "non-synonymous/synonymous rate ratio for *Foreground*":        [
-[0.3906835664161215, 1] 
+[0.3906835664161215, 1]
         ],
        "non-synonymous/synonymous rate ratio for *background*":        [
-[0.1357990297446096, 1] 
+[0.1357990297446096, 1]
         ]
       },
      "display order":1,
@@ -287,7 +287,7 @@
 [0.3347619047619048],
       [0.2033333333333333],
       [0.2466666666666667],
-      [0.2152380952380952] 
+      [0.2152380952380952]
       ],
      "Log Likelihood":-546.2152441452704,
      "Rate Distributions":{

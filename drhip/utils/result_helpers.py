@@ -5,7 +5,7 @@ This module contains utility functions for merging and processing results
 from different HyPhy methods.
 """
 
-from typing import Dict, Any, List, Set, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 def merge_field_value(
@@ -250,7 +250,7 @@ def detect_comparison_groups(
     # Map of method names to their detection functions
     detection_functions = {
         "CFEL": detect_cfel_groups,
-        "RELAX": detect_relax_groups
+        "RELAX": detect_relax_groups,
         # Add more methods here as they are implemented
     }
 

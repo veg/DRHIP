@@ -2,8 +2,9 @@
 Tests for result helper functions.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from drhip.utils import result_helpers as rh
 
@@ -147,7 +148,7 @@ def test_collect_method_fields():
     # Set up method results
     method_results = {
         "Method1": {"result": "data1"},
-        "Method3": {"result": "data3"}
+        "Method3": {"result": "data3"},
         # Method2 has no results
     }
 

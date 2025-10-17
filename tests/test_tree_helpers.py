@@ -2,9 +2,10 @@
 Tests for tree helper functions.
 """
 
-import pytest
 from collections import Counter
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from drhip.utils import tree_helpers as th
 

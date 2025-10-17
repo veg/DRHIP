@@ -9,7 +9,7 @@ This prevents accidental breakage when processing legacy data.
 import json
 import os
 import warnings
-from typing import Dict, Any
+from typing import Any, Dict
 
 from drhip.methods.cfel import CfelMethod
 
@@ -31,7 +31,7 @@ def _load_cfel_results(
         "CONTRASTFEL",
         filename,
     )
-    with open(path, "r") as f:
+    with open(path) as f:
         return json.load(f)
 
 

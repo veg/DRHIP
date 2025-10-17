@@ -8,14 +8,13 @@ Authors:
 """
 
 import argparse
-import os
 import concurrent.futures
-import traceback
 import csv
+import os
 import tempfile
+import traceback
 
 from . import __version__
-
 from .parsers import process_gene
 from .utils import file_handlers as fh
 
@@ -48,7 +47,7 @@ def combine_csv_files(temp_dir: str, output_dir: str, file_suffix: str) -> None:
     # Collect all unique fieldnames across files
     all_fieldnames = set()
     for file_path in files_to_combine:
-        with open(file_path, "r", newline="") as csvfile:
+        with open(file_path, newline="") as csvfile:
             reader = csv.reader(csvfile)
             try:
                 header = next(reader)
@@ -91,7 +90,7 @@ def combine_csv_files(temp_dir: str, output_dir: str, file_suffix: str) -> None:
 
         # Read each input file and write rows to the combined file
         for file_path in files_to_combine:
-            with open(file_path, "r", newline="") as infile:
+            with open(file_path, newline="") as infile:
                 reader = csv.DictReader(infile)
                 for row in reader:
                     # Fill missing fields with 'NA'

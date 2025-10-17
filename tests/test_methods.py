@@ -5,13 +5,13 @@ Tests for HyPhy analysis methods.
 import os
 
 from drhip.methods import (
-    HyPhyMethodRegistry,
     BustedMethod,
-    RelaxMethod,
     CfelMethod,
     FelMethod,
+    HyPhyMethodRegistry,
     MemeMethod,
     PrimeMethod,
+    RelaxMethod,
 )
 
 

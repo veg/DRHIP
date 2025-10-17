@@ -2,7 +2,7 @@
 MEME (Mixed Effects Model of Evolution) method implementation.
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from .base import HyPhyMethod
 

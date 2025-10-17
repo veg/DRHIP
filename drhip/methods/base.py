@@ -3,7 +3,7 @@ Base class and interfaces for HyPhy analysis methods.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 
 class HyPhyMethod(ABC):
@@ -40,6 +40,7 @@ class HyPhyMethod(ABC):
             Full path to the results file
         """
         import os
+
         from ..config import METHOD_PATHS
 
         method_dir = METHOD_PATHS.get(self.name, self.name)

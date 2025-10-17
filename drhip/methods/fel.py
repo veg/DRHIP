@@ -2,7 +2,7 @@
 FEL (Fixed Effects Likelihood) method implementation.
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from .base import HyPhyMethod
 
@@ -150,9 +150,7 @@ class FelMethod(HyPhyMethod):
                 selection_type = (
                     "positive"
                     if beta > alpha and pvalue <= 0.05
-                    else "negative"
-                    if beta < alpha and pvalue <= 0.05
-                    else "neutral"
+                    else "negative" if beta < alpha and pvalue <= 0.05 else "neutral"
                 )
 
                 # Return site data - only include site-specific fields

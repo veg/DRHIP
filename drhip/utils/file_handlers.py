@@ -7,12 +7,12 @@ Authors:
     Danielle Callan (dcallan@temple.edu)
 """
 
-import os
 import json
+import os
 from typing import List
 
-from ..methods.registry import HyPhyMethodRegistry
 from ..config import METHOD_PATHS
+from ..methods.registry import HyPhyMethodRegistry
 
 
 def get_genes(results_path: str) -> List[str]:
@@ -64,7 +64,7 @@ def load_json(filepath: str) -> dict:
         Parsed JSON content as dictionary
     """
     try:
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             return json.load(f)
     except FileNotFoundError:
         return None

@@ -2,10 +2,10 @@
 CFEL (Contrast-FEL) method implementation.
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-from ..utils import tree_helpers
 from ..utils import sequence_utils as su
+from ..utils import tree_helpers
 from .base import HyPhyMethod
 
 
@@ -404,20 +404,20 @@ class CfelMethod(HyPhyMethod):
 
                     # Composition for this group
                     comp_counts = composition_all.get(group, {})
-                    comparison_data[site_id][group][
-                        "composition"
-                    ] = su.format_composition(comp_counts)
+                    comparison_data[site_id][group]["composition"] = (
+                        su.format_composition(comp_counts)
+                    )
 
                     # Majority residue for this group
-                    comparison_data[site_id][group][
-                        "majority_residue"
-                    ] = su.get_majority_residue(comp_counts)
+                    comparison_data[site_id][group]["majority_residue"] = (
+                        su.get_majority_residue(comp_counts)
+                    )
 
                     # Substitutions for this group
                     sub_counts = subs_all.get(group, {})
-                    comparison_data[site_id][group][
-                        "substitutions"
-                    ] = su.format_substitutions(sub_counts)
+                    comparison_data[site_id][group]["substitutions"] = (
+                        su.format_substitutions(sub_counts)
+                    )
         else:
             # Backward compatibility: substitutions field not present in older HyPhy versions
             import warnings

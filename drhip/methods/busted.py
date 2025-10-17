@@ -2,10 +2,9 @@
 BUSTED (Branch-Site Unrestricted Statistical Test for Episodic Diversification) method implementation.
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from ..utils import tree_helpers
-from ..utils import sequence_utils as su
 from .base import HyPhyMethod
 
 
@@ -195,9 +194,9 @@ class BustedMethod(HyPhyMethod):
             # Initialize site data with basic information - only include site-specific fields
             site_info = {
                 "composition": ",".join(site_composition) if site_composition else "NA",
-                "substitutions": ",".join(site_substitutions)
-                if site_substitutions
-                else "NA",
+                "substitutions": (
+                    ",".join(site_substitutions) if site_substitutions else "NA"
+                ),
                 "majority_residue": "NA",
             }
 
