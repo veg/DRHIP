@@ -101,7 +101,7 @@
       [3.313768267581448, 1.973148472677998e-06, 2.347916570416635e-05, 0.0001856185020854866, 0, 0, 0.9884000864945656, 1, -1, 0.5235638595517074],
       [2.571641474138453, 1.061881784795999e-05, 2.187008104849089e-05, 0.01243114596748444, 0, 0, 0.9251761607389689, 1, -1, 0.4064299766607024],
       [4.418184406243646, 1.72811319730161e-06, 1.656455741556226e-06, 4.25672216469344e-05, 0, 0, 0.9749555254654307, 1, -1, 0.6980523571644588],
-      [0, 0, 0, 0, 1, 1, 1, 1, 1, 0] 
+      [0, 0, 0, 0, 1, 1, 1, 1, 1, 0]
       ]
     },
    "headers":    [
@@ -114,7 +114,7 @@
     ["P-value (overall)", "P-value for the test that non-synonymous rates differ between any of the selected groups: Reference,Foreground"],
     ["Q-value (overall)", "Q-value for the test that non-synonymous rates differ between any of the selected groups: Reference,Foreground"],
     ["Permutation p-value", "Label permutation test for significant sites"],
-    ["Total branch length", "The total length of branches contributing to inference at this site, and used to scale beta-alpha"] 
+    ["Total branch length", "The total length of branches contributing to inference at this site, and used to scale beta-alpha"]
     ]
   },
  "analysis":{
@@ -314,7 +314,7 @@
  "data partitions":{
    "0":{
      "coverage":      [
-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99] 
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
       ],
      "name":"fel.filter.default"
     }
@@ -383,18 +383,18 @@
       [0.03135043533876745],
       [0.01483399068059511],
       [0.02479309690153406],
-      [0.01019156779054619] 
+      [0.01019156779054619]
       ],
      "Log Likelihood":-732.8054883961942,
      "Rate Distributions":{
        "non-synonymous/synonymous rate ratio for *Foreground*":        [
-[0, 1] 
+[0, 1]
         ],
        "non-synonymous/synonymous rate ratio for *Reference*":        [
-[0.09151674358221767, 1] 
+[0.09151674358221767, 1]
         ],
        "non-synonymous/synonymous rate ratio for *background*":        [
-[0.1731767727713265, 1] 
+[0.1731767727713265, 1]
         ]
       },
      "display order":1,
@@ -406,7 +406,7 @@
 [0.3401587301587302],
       [0.1992063492063492],
       [0.2417460317460317],
-      [0.2188888888888889] 
+      [0.2188888888888889]
       ],
      "Log Likelihood":-767.535828988769,
      "Rate Distributions":{

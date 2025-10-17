@@ -1,0 +1,28 @@
+# Ruff configuration
+line-length = 100
+target-version = "py38"
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "B007",  # loop control variable not used (often intentional)
+    "B028",  # no explicit stacklevel (warnings are fine without it)
+    "C414",  # unnecessary list call (sometimes more readable)
+    "C405",  # unnecessary list literal (sometimes more readable)
+    "E402",  # module level import not at top (sometimes necessary)
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # unused imports in __init__.py
+"tests/*" = ["F401", "F811", "F841"]  # allow unused imports, redefinitions, and unused variables in tests

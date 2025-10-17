@@ -3,16 +3,16 @@ Configuration settings for DRHIP (Data Reduction for HyPhy with Inference Proces
 """
 
 # Default values for comparison groups
-DEFAULT_COMPARISON_GROUPS = ['foreground', 'background']
+DEFAULT_COMPARISON_GROUPS = ["foreground", "background"]
 
 # Method-specific paths relative to results directory for CAPHEINE structure
 METHOD_PATHS = {
-    'BUSTED': 'BUSTED',
-    'RELAX': 'RELAX',
-    'CFEL': 'CONTRASTFEL',
-    'FEL': 'FEL',
-    'MEME': 'MEME',
-    'PRIME': 'PRIME'
+    "BUSTED": "BUSTED",
+    "RELAX": "RELAX",
+    "CFEL": "CONTRASTFEL",
+    "FEL": "FEL",
+    "MEME": "MEME",
+    "PRIME": "PRIME",
 }
 
 # The values in these lists are populated by individual methods
@@ -28,35 +28,35 @@ SUMMARY_FIELDNAMES = [
 ]
 
 SITES_FIELDNAMES = [
-    'gene',
-    'site',
-    'composition',
-    'substitutions',
-    'majority_residue',
-    'prime_marker',
-    'meme_marker',
-    'fel_selection'
+    "gene",
+    "site",
+    "composition",
+    "substitutions",
+    "majority_residue",
+    "prime_marker",
+    "meme_marker",
+    "fel_selection",
 ]
 
 COMPARISON_GROUPS_SUMMARY_FIELDNAMES = [
-    'gene',
-    'comparison_group',
-    'group_N',
-    'group_T',
-    'group_dN/dS',
-    'group_aa_conserved',
+    "gene",
+    "comparison_group",
+    "group_N",
+    "group_T",
+    "group_dN/dS",
+    "group_aa_conserved",
 ]
 
 COMPARISON_GROUPS_SITE_FIELDNAMES = [
-    'gene',
-    'site',
-    'comparison_group',
-    'unique_aas',
-    'has_diff_majority',
-    'aa_diversity',
-    'majority_residue',
-    'composition',
-    'cfel_marker',
-    'cfel_beta',
-    'intensified_positive_selection'
+    "gene",
+    "site",
+    "comparison_group",
+    "unique_aas",
+    "has_diff_majority",
+    "aa_diversity",
+    "majority_residue",
+    "composition",
+    "cfel_marker",
+    "cfel_beta",
+    "intensified_positive_selection",
 ]

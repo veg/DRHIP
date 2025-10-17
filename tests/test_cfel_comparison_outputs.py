@@ -5,22 +5,24 @@ Tests covering PR #11 for CFEL comparison outputs:
 """
 
 import json
-import os
-from typing import Dict, Any, List
-
 import math
+import os
+from typing import Any, Dict, List
+
 import pytest
 
 from drhip.methods.cfel import CfelMethod
 
 
-def _load_cfel_results(comparison_results_dir: str, gene_basename: str) -> Dict[str, Any]:
+def _load_cfel_results(
+    comparison_results_dir: str, gene_basename: str
+) -> Dict[str, Any]:
     path = os.path.join(
         comparison_results_dir,
         "CONTRASTFEL",
         f"{gene_basename}.CONTRASTFEL.json",
     )
-    with open(path, "r") as f:
+    with open(path) as f:
         return json.load(f)
 
 
@@ -63,7 +65,9 @@ def _expected_group_counts_and_T(results: Dict[str, Any], groups: List[str]):
 
 
 def _expected_group_dNdS(results: Dict[str, Any], groups: List[str]):
-    rd = results.get("fits", {}).get("Global MG94xREV", {}).get("Rate Distributions", {})
+    rd = (
+        results.get("fits", {}).get("Global MG94xREV", {}).get("Rate Distributions", {})
+    )
     out = {}
     for g in groups:
         found = None
@@ -134,7 +138,12 @@ def test_cfel_process_comparison_data_fields_and_values(comparison_results_dir: 
         for g in groups:
             assert comp_data[g]["group_N"] == expected_counts[g]["N"]
             # Floating point tolerance for T
-            assert math.isclose(float(comp_data[g]["group_T"]), expected_counts[g]["T"], rel_tol=1e-9, abs_tol=1e-9)
+            assert math.isclose(
+                float(comp_data[g]["group_T"]),
+                expected_counts[g]["T"],
+                rel_tol=1e-9,
+                abs_tol=1e-9,
+            )
 
         # Validate dN/dS
         expected_dNdS = _expected_group_dNdS(results, groups)
@@ -142,7 +151,12 @@ def test_cfel_process_comparison_data_fields_and_values(comparison_results_dir: 
             if expected_dNdS[g] == "NA":
                 assert comp_data[g]["group_dN/dS"] == "NA"
             else:
-                assert math.isclose(float(comp_data[g]["group_dN/dS"]), float(expected_dNdS[g]), rel_tol=1e-9, abs_tol=1e-9)
+                assert math.isclose(
+                    float(comp_data[g]["group_dN/dS"]),
+                    float(expected_dNdS[g]),
+                    rel_tol=1e-9,
+                    abs_tol=1e-9,
+                )
 
         # Validate AA conserved count
         expected_aa = _expected_group_aa_conserved(results, groups)
@@ -150,10 +164,14 @@ def test_cfel_process_comparison_data_fields_and_values(comparison_results_dir: 
             if expected_aa[g] == "NA":
                 assert comp_data[g]["group_aa_conserved"] == "NA"
             else:
-                assert comp_data[g]["group_aa_conserved"] == expected_aa[g], f"Comparison group {g} doesn't match expected AA conserved count"
+                assert (
+                    comp_data[g]["group_aa_conserved"] == expected_aa[g]
+                ), f"Comparison group {g} doesn't match expected AA conserved count"
 
 
-def test_cfel_process_comparison_site_data_has_composition_and_substitutions(comparison_results_dir: str):
+def test_cfel_process_comparison_site_data_has_composition_and_substitutions(
+    comparison_results_dir: str,
+):
     basenames = _list_cfel_basenames(comparison_results_dir)
     assert basenames, "No CFEL comparison datasets found for testing"
 
@@ -179,11 +197,21 @@ def test_cfel_process_comparison_site_data_has_composition_and_substitutions(com
             assert g in site_data[site_id]
             gdata = site_data[site_id][g]
             # Presence of keys
-            for key in ["cfel_marker", "cfel_beta", "composition", "substitutions", "majority_residue"]:
-                # currently throwing errors when a site has no subs & therefore comp/subs/major residue isn't calculated 
-                assert key in gdata, f"Missing key {key} for group {g} at site {site_id}"
+            for key in [
+                "cfel_marker",
+                "cfel_beta",
+                "composition",
+                "substitutions",
+                "majority_residue",
+            ]:
+                # currently throwing errors when a site has no subs & therefore comp/subs/major residue isn't calculated
+                assert (
+                    key in gdata
+                ), f"Missing key {key} for group {g} at site {site_id}"
             # Basic format checks
             assert isinstance(gdata["composition"], str)
             assert isinstance(gdata["substitutions"], str)
             assert isinstance(gdata["majority_residue"], str)
-            assert gdata["majority_residue"] == '-' or len(gdata["majority_residue"]) == 1
+            assert (
+                gdata["majority_residue"] == "-" or len(gdata["majority_residue"]) == 1
+            )
