@@ -18,14 +18,13 @@ METHOD_PATHS = {
 # The values in these lists are populated by individual methods
 # The lists here are used to validate that all expected fields are present in the output files
 SUMMARY_FIELDNAMES = [
-    "gene",
-    "N",  # Number of sequences
-    "T",  # Total branch length
-    "dN/dS",  # Overall dN/dS ratio
-    "sites",  # Number of sites
-    "diff_sites",
-    "RELAX_K",
-    "RELAX_overall_pval",
+    'gene',
+    'N',      # Number of sequences
+    'T',      # Total branch length
+    'sites',  # Number of sites
+    'diff_sites',
+    'RELAX_K',
+    'RELAX_overall_pval'
 ]
 
 SITES_FIELDNAMES = [
