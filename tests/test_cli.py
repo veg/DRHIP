@@ -39,7 +39,9 @@ def test_combine_csv_files():
             with open(output_file, 'r', newline='') as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
+                rows.sort(key=lambda x: x.get('gene', ''))
                 
+
                 assert len(rows) == 2
                 assert rows[0]['gene'] == 'gene1'
                 assert rows[0]['busted_pvalue'] == '0.01'
@@ -81,6 +83,7 @@ def test_combine_csv_files_sites():
             with open(output_file, 'r', newline='') as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
+                rows.sort(key=lambda x: x.get('gene', ''))
                 
                 assert len(rows) == 3
                 assert rows[0]['gene'] == 'gene1'

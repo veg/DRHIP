@@ -12,6 +12,15 @@ class FelMethod(HyPhyMethod):
     def __init__(self):
         """Initialize FEL method."""
         super().__init__("FEL", "FEL.json")
+    
+    def validate_input_json(self, results: Dict[str, Any]) -> List[str]:
+        missing = []
+        missing.extend(self.validate_required_paths(results, ['MLE.headers', 'MLE.content.0']))
+        # If headers exist, ensure key columns are present
+        missing_headers = self.missing_mle_headers(results, ['alpha', 'beta', 'p-value'])
+        if missing_headers:
+            missing.extend([f"MLE.headers:{h}" for h in missing_headers])
+        return missing
         
     def calculate_negative_sites(self, results: Dict[str, Any], 
                                 alpha_col: str = 'alpha', 
