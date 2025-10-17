@@ -28,7 +28,7 @@ class CfelMethod(HyPhyMethod):
             'branch attributes.0', # branch attributes (e.g. branch lengths)
             'fits.Global MG94xREV.Rate Distributions', # contains group-specific dN/dS rates
             'input.trees.0', # input tree
-            'substitutions.0' # inferred substitutions
+            # Note: 'substitutions.0' is optional for backward compatibility with older HyPhy versions
         ]
         missing.extend(self.validate_required_paths(results, required_paths))
         return missing
@@ -386,6 +386,15 @@ class CfelMethod(HyPhyMethod):
                     # Substitutions for this group
                     sub_counts = subs_all.get(group, {})
                     comparison_data[site_id][group]['substitutions'] = su.format_substitutions(sub_counts)
+        else:
+            # Backward compatibility: substitutions field not present in older HyPhy versions
+            import warnings
+            warnings.warn(
+                "CFEL results do not contain 'substitutions' field. "
+                "This is expected for older HyPhy versions. "
+                "Composition, substitutions, and majority_residue fields will not be populated.",
+                UserWarning
+            )
         
         return comparison_data
         

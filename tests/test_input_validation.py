@@ -80,6 +80,7 @@ def test_fel_validate_input_json_requires_headers_and_columns():
 def test_cfel_validate_input_json_requires_mle_and_tested():
     method = CfelMethod()
     # Missing substitutions data (hyphy <=v2.5.83)
+    # This is now valid for backward compatibility
     results = {
         'MLE': {
             'headers': [
@@ -125,11 +126,12 @@ def test_cfel_validate_input_json_requires_mle_and_tested():
             },
     }
     missing = set(method.validate_input_json(results))
+    # All required fields are present - substitutions is now optional for backward compatibility
     assert 'tested.0' not in missing
-    assert 'branch attributes.0.Global MG94xREV' not in missing
+    assert 'branch attributes.0' not in missing
     assert 'fits.Global MG94xREV.Rate Distributions' not in missing
-    assert 'substitutions.0' in missing
-    assert len(missing) == 1  # WRONG once all things are added as required, but it should just be subs missing
+    assert 'substitutions.0' not in missing  # No longer required
+    assert len(missing) == 0  # All required fields present
 
 
 def test_process_gene_warns_invalid_busted(results_dir, capsys):
