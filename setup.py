@@ -24,6 +24,10 @@ setup(
         'dev': [
             'pytest>=7.0.0',
             'pytest-cov>=4.0.0',
+            'pre-commit>=3.0.0',
+            'black>=24.0.0',
+            'isort>=5.12.0',
+            'ruff>=0.1.0',
         ],
     },
     entry_points={

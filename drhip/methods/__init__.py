@@ -12,12 +12,12 @@ from .prime import PrimeMethod
 from .registry import HyPhyMethodRegistry
 
 __all__ = [
-    'HyPhyMethod',
-    'BustedMethod',
-    'RelaxMethod',
-    'CfelMethod',
-    'FelMethod',
-    'MemeMethod',
-    'PrimeMethod',
-    'HyPhyMethodRegistry'
+    "HyPhyMethod",
+    "BustedMethod",
+    "RelaxMethod",
+    "CfelMethod",
+    "FelMethod",
+    "MemeMethod",
+    "PrimeMethod",
+    "HyPhyMethodRegistry",
 ]

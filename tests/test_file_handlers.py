@@ -21,20 +21,20 @@ def test_get_genes():
         fel_dir = os.path.join(temp_dir, "FEL")
         os.makedirs(busted_dir)
         os.makedirs(fel_dir)
-        
+
         # Create mock result files
-        with open(os.path.join(busted_dir, "gene1.BUSTED.json"), 'w') as f:
+        with open(os.path.join(busted_dir, "gene1.BUSTED.json"), "w") as f:
             f.write("{}")
-        with open(os.path.join(busted_dir, "gene2.BUSTED.json"), 'w') as f:
+        with open(os.path.join(busted_dir, "gene2.BUSTED.json"), "w") as f:
             f.write("{}")
-        with open(os.path.join(fel_dir, "gene1.FEL.json"), 'w') as f:
+        with open(os.path.join(fel_dir, "gene1.FEL.json"), "w") as f:
             f.write("{}")
-        with open(os.path.join(fel_dir, "gene3.FEL.json"), 'w') as f:
+        with open(os.path.join(fel_dir, "gene3.FEL.json"), "w") as f:
             f.write("{}")
-        
+
         # Test get_genes function
         genes = fh.get_genes(temp_dir)
-        
+
         # Verify results
         assert isinstance(genes, list)
         assert set(genes) == {"gene1", "gene2", "gene3"}
@@ -52,14 +52,14 @@ def test_get_genes_empty_directory():
 def test_load_json_valid():
     """Test loading a valid JSON file."""
     # Create a temporary JSON file
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_file:
         json.dump({"key": "value"}, temp_file)
         temp_path = temp_file.name
-    
+
     try:
         # Test loading the file
         result = fh.load_json(temp_path)
-        
+
         # Verify result
         assert result == {"key": "value"}
     finally:
@@ -76,14 +76,14 @@ def test_load_json_nonexistent():
 def test_load_json_invalid():
     """Test loading an invalid JSON file."""
     # Create a temporary file with invalid JSON
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_file:
         temp_file.write("{invalid: json")
         temp_path = temp_file.name
-    
+
     try:
         # Test loading the file
         result = fh.load_json(temp_path)
-        
+
         # Verify result
         assert result is None
     finally:

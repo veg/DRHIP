@@ -15,7 +15,9 @@ import pytest
 from drhip.methods.cfel import CfelMethod
 
 
-def _load_cfel_results(comparison_results_dir: str, gene_basename: str) -> Dict[str, Any]:
+def _load_cfel_results(
+    comparison_results_dir: str, gene_basename: str
+) -> Dict[str, Any]:
     path = os.path.join(
         comparison_results_dir,
         "CONTRASTFEL",
@@ -136,8 +138,12 @@ def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
                     expected_marker = "NA"
 
             for group in groups:
-                assert site_id in site_data, f"Missing site {site_id} in comparison data"
-                assert group in site_data[site_id], f"Missing group {group} at site {site_id}"
+                assert (
+                    site_id in site_data
+                ), f"Missing site {site_id} in comparison data"
+                assert (
+                    group in site_data[site_id]
+                ), f"Missing group {group} at site {site_id}"
 
                 gdata = site_data[site_id][group]
 
