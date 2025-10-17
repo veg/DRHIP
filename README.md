@@ -88,22 +88,25 @@ The toolkit produces combined files that aggregate data across all genes:
   - RELAX: K parameter, p-values, and LRT statistics (if RELAX results are available)
   - BUSTED: Evidence of selection, omega distributions
   - Conservation metrics
-  - Branch length information
+  - Number of tested branches (N)
+  - Total length of tested branches (T)
+  - Number of sites (sites)
 
 - **combined_sites.csv**: Site-specific analysis including:
   - Beta values per comparison group
-  - Substitution counts
-  - Conservation status
+  - Inferred substitutions at each site
+  - Site amino acid composition
 
 - **combined_comparison_summary.csv**: Comparison group-specific summary statistics (only generated when RELAX or Contrast-FEL results are present):
-  - Group sizes (N)
-  - Total branch lengths (T)
+  - Total number of branches analyzed per group (N)
+  - Total branch lengths analyzed per group (T)
   - Group-specific dN/dS ratios
   - Conservation metrics per group
 
 - **combined_comparison_site.csv**: Comparison group-specific site analysis (only generated when RELAX or Contrast-FEL results are present):
   - Site-specific metrics for each comparison group
-  - Conservation markers
+  - Inferred substitutions at each site per group
+  - Site amino acid composition per group
   - Group-specific selection indicators
 
 The combined files automatically include the superset of all fields found across all genes, with missing values marked as 'NA'. This makes it easy to analyze patterns across the entire dataset.
