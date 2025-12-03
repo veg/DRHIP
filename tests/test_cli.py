@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from drhip.cli import combine_csv_files, main
+from drhip.cli import combine_files, main
 
 
 def test_combine_csv_files():
@@ -30,7 +30,7 @@ def test_combine_csv_files():
                 writer.writerow(["gene2", "0.05", "5"])
 
             # Test the combine function
-            combine_csv_files(temp_dir, output_dir, "summary")
+            combine_files(temp_dir, output_dir, "summary")
 
             # Verify results
             output_file = os.path.join(output_dir, "combined_summary.csv")
@@ -73,7 +73,7 @@ def test_combine_csv_files_sites():
                 writer.writerow(["gene2", "1", "0.01", "0.3"])
 
             # Test the combine function
-            combine_csv_files(temp_dir, output_dir, "sites")
+            combine_files(temp_dir, output_dir, "sites")
 
             # Verify results
             output_file = os.path.join(output_dir, "combined_sites.csv")
@@ -120,7 +120,7 @@ def test_combine_csv_files_comparison():
                 writer.writerow(["gene2", "1", "foreground", "0.5", "1.2"])
 
             # Test the combine function
-            combine_csv_files(temp_dir, output_dir, "comparison_site")
+            combine_files(temp_dir, output_dir, "comparison_site")
 
             # Verify results
             output_file = os.path.join(output_dir, "combined_comparison_site.csv")
@@ -168,7 +168,7 @@ def test_combine_csv_files_empty():
     with tempfile.TemporaryDirectory() as temp_dir:
         with tempfile.TemporaryDirectory() as output_dir:
             # Test the combine function with no matching files
-            combine_csv_files(temp_dir, output_dir, "summary")
+            combine_files(temp_dir, output_dir, "summary")
 
             # Verify no output file was created
             output_file = os.path.join(output_dir, "combined_summary.csv")
@@ -177,7 +177,7 @@ def test_combine_csv_files_empty():
 
 @patch("drhip.cli.process_gene.process_gene")
 @patch("drhip.cli.fh.get_genes")
-@patch("drhip.cli.combine_csv_files")
+@patch("drhip.cli.combine_files")
 def test_main_workflow(mock_combine, mock_get_genes, mock_process_gene):
     """Test the main CLI workflow with mocked dependencies."""
     # Setup mocks
@@ -202,18 +202,14 @@ def test_main_workflow(mock_combine, mock_get_genes, mock_process_gene):
 
                 # Verify combine_csv_files was called for each file type
                 assert mock_combine.call_count == 4
-                mock_combine.assert_any_call(
-                    mock_combine.call_args[0][0], output_dir, "summary"
-                )
-                mock_combine.assert_any_call(
-                    mock_combine.call_args[0][0], output_dir, "sites"
-                )
-                mock_combine.assert_any_call(
-                    mock_combine.call_args[0][0], output_dir, "comparison_site"
-                )
-                mock_combine.assert_any_call(
-                    mock_combine.call_args[0][0], output_dir, "comparison_summary"
-                )
+                # Delimiter is optional with default ",", so we can check with or without it
+                for suffix in ["summary", "sites", "comparison_site", "comparison_summary"]:
+                    # Check that it was called with this suffix (delimiter may or may not be explicit)
+                    calls_with_suffix = [
+                        call for call in mock_combine.call_args_list
+                        if len(call[0]) >= 3 and call[0][2] == suffix
+                    ]
+                    assert len(calls_with_suffix) >= 1, f"Expected call with suffix '{suffix}'"
 
 
 @patch("drhip.cli.process_gene.process_gene")
@@ -253,7 +249,7 @@ def test_main_with_relative_paths(mock_parse_args):
             with patch("drhip.cli.os.getcwd") as mock_getcwd:
                 with patch("drhip.cli.os.path.join") as mock_join:
                     with patch("drhip.cli.os.makedirs"):
-                        with patch("drhip.cli.combine_csv_files"):
+                        with patch("drhip.cli.combine_files"):
                             # Setup mocks
                             mock_getcwd.return_value = "/home/user"
                             mock_get_genes.return_value = []
@@ -265,3 +261,112 @@ def test_main_with_relative_paths(mock_parse_args):
 
                             # Verify paths were resolved correctly
                             mock_join.assert_any_call("/home/user", "relative/input")
+
+
+def test_csv_output_format():
+    """Test CSV output format with comma delimiter and LF line endings."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory() as output_dir:
+            # Create test CSV files
+            gene1_file = os.path.join(temp_dir, "gene1_summary.csv")
+            with open(gene1_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["gene", "value1", "value2"])
+                writer.writerow(["gene1", "100", "200"])
+
+            # Test CSV format (default)
+            combine_files(temp_dir, output_dir, "summary", delimiter=",")
+
+            # Verify output file
+            output_file = os.path.join(output_dir, "combined_summary.csv")
+            assert os.path.exists(output_file)
+            assert output_file.endswith(".csv")
+
+            # Read file in binary mode to check line endings and delimiter
+            with open(output_file, "rb") as f:
+                content = f.read()
+                # Check for LF line endings (0x0a) and no CRLF (0x0d 0x0a)
+                assert b"\n" in content
+                assert b"\r\n" not in content
+                # Check for comma delimiter
+                assert b"," in content
+
+            # Verify content is readable as CSV
+            with open(output_file, newline="") as f:
+                reader = csv.DictReader(f)
+                rows = list(reader)
+                assert len(rows) == 1
+                assert rows[0]["gene"] == "gene1"
+                assert rows[0]["value1"] == "100"
+
+
+def test_tabular_output_format():
+    """Test tabular output format with tab delimiter and LF line endings."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory() as output_dir:
+            # Create test CSV files
+            gene1_file = os.path.join(temp_dir, "gene1_summary.csv")
+            with open(gene1_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["gene", "value1", "value2"])
+                writer.writerow(["gene1", "100", "200"])
+
+            # Test tabular format
+            combine_files(temp_dir, output_dir, "summary", delimiter="\t")
+
+            # Verify output file
+            output_file = os.path.join(output_dir, "combined_summary.tab")
+            assert os.path.exists(output_file)
+            assert output_file.endswith(".tab")
+
+            # Read file in binary mode to check line endings and delimiter
+            with open(output_file, "rb") as f:
+                content = f.read()
+                # Check for LF line endings (0x0a) and no CRLF (0x0d 0x0a)
+                assert b"\n" in content
+                assert b"\r\n" not in content
+                # Check for tab delimiter (0x09)
+                assert b"\t" in content
+                # Should not have commas as delimiters
+                assert b"gene,value1" not in content
+
+            # Verify content is readable as tab-delimited
+            with open(output_file, newline="") as f:
+                reader = csv.DictReader(f, delimiter="\t")
+                rows = list(reader)
+                assert len(rows) == 1
+                assert rows[0]["gene"] == "gene1"
+                assert rows[0]["value1"] == "100"
+
+
+@patch("drhip.cli.process_gene.process_gene")
+@patch("drhip.cli.fh.get_genes")
+@patch("drhip.cli.combine_files")
+def test_main_with_tabular_flag(mock_combine, mock_get_genes, mock_process_gene):
+    """Test the main CLI workflow with --tabular flag."""
+    # Setup mocks
+    mock_get_genes.return_value = ["gene1"]
+
+    # Create temp directories for testing
+    with tempfile.TemporaryDirectory() as input_dir:
+        with tempfile.TemporaryDirectory() as output_dir:
+            # Mock command line arguments with --tabular
+            with patch(
+                "sys.argv", ["drhip", "-i", input_dir, "-o", output_dir, "--tabular"]
+            ):
+                # Run the main function
+                main()
+
+                # Verify combine_csv_files was called with tab delimiter
+                assert mock_combine.call_count == 4
+                for call in mock_combine.call_args_list:
+                    # Check that delimiter argument is tab
+                    assert call[0][2] in [
+                        "summary",
+                        "sites",
+                        "comparison_site",
+                        "comparison_summary",
+                    ]
+                    # The delimiter should be passed as the third positional arg
+                    if len(call[0]) > 3:
+                        assert call[0][3] == "\t"

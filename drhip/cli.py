@@ -19,13 +19,15 @@ from .parsers import process_gene
 from .utils import file_handlers as fh
 
 
-def combine_csv_files(temp_dir: str, output_dir: str, file_suffix: str) -> None:
-    """Combine all gene-specific CSV files into a single file with the superset of columns.
+def combine_files(temp_dir: str, output_dir: str, file_suffix: str, delimiter: str = ",", lineterminator: str = "\n") -> None:
+    """Combine all gene-specific files into a single file with the superset of columns.
 
     Args:
         temp_dir: Directory containing gene-specific CSV files
         output_dir: Directory to write the combined file
         file_suffix: Suffix of the files to combine ('summary' or 'sites')
+        delimiter: Field delimiter (default: ',')
+        lineterminator: Line terminator (default: '\n')
     """
     # Find all files with the given suffix
     files_to_combine = []
@@ -83,9 +85,10 @@ def combine_csv_files(temp_dir: str, output_dir: str, file_suffix: str) -> None:
                 ordered_fieldnames.append(field)
 
     # Create the combined output file
-    output_file = os.path.join(output_dir, f"combined_{file_suffix}.csv")
+    file_ext = "tab" if delimiter == "\t" else "csv"
+    output_file = os.path.join(output_dir, f"combined_{file_suffix}.{file_ext}")
     with open(output_file, "w", newline="") as outfile:
-        writer = csv.DictWriter(outfile, fieldnames=ordered_fieldnames)
+        writer = csv.DictWriter(outfile, fieldnames=ordered_fieldnames, delimiter=delimiter, lineterminator=lineterminator)
         writer.writeheader()
 
         # Read each input file and write rows to the combined file
@@ -128,6 +131,12 @@ def main():
         default=os.getcwd(),
         type=str,
     )
+    arguments.add_argument(
+        "--tabular",
+        help="Output tab-delimited files (default: comma-delimited).",
+        action="store_true",
+        default=False,
+    )
     settings = arguments.parse_args()
 
     # Handle both absolute and relative paths for hyphy_results
@@ -162,10 +171,11 @@ def main():
 
         # Combine gene-specific files into unified files
         print("Combining gene-specific results into unified files...")
-        combine_csv_files(temp_dir, output_dir, "summary")
-        combine_csv_files(temp_dir, output_dir, "sites")
-        combine_csv_files(temp_dir, output_dir, "comparison_site")
-        combine_csv_files(temp_dir, output_dir, "comparison_summary")
+        delimiter = "\t" if settings.tabular else ","
+        combine_files(temp_dir, output_dir, "summary", delimiter)
+        combine_files(temp_dir, output_dir, "sites", delimiter)
+        combine_files(temp_dir, output_dir, "comparison_site", delimiter)
+        combine_files(temp_dir, output_dir, "comparison_summary", delimiter)
 
 
 if __name__ == "__main__":
