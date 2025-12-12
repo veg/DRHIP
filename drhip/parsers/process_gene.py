@@ -118,7 +118,12 @@ def process_gene(gene: str, results_path: str, output_dir: str) -> None:
     # Make detected comparison groups available to methods
     for method in methods:
         if hasattr(method, "set_comparison_groups"):
-            method.set_comparison_groups(comparison_groups)
+            if method.name in groups_by_method:
+                method.set_comparison_groups(groups_by_method[method.name])
+            else:
+                # the dengue BUSTED results won't have a substitution data field, which is the only reason we need comparison groups for it
+                # so just pick the CFEL comparison groups because they should have the most genotypes
+                method.set_comparison_groups(groups_by_method['CFEL'])
 
     # Initialize summary dictionary with gene name only
     gene_summary_dict = {"gene": gene}

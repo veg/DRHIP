@@ -292,11 +292,10 @@ def detect_comparison_groups(
         # Check if groups are consistent (ignoring order)
         if set(first_groups) != set(groups):
             # Groups are inconsistent, raise error
-            error_msg = "ERROR: Inconsistent comparison groups between methods\n"
+            warning_msg = f"Warning: Inconsistent comparison groups between methods\n"
             for m, g in detected_by_method.items():
-                error_msg += f"  {m} groups: {', '.join(g)}\n"
-            print(error_msg)
-            raise ValueError(error_msg)
+                warning_msg += f"  {m} groups: {', '.join(g)}\n"
+            print(warning_msg)
         else:
             gene_info = f" for {gene_name}" if gene_name else ""
             print(
