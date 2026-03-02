@@ -34,6 +34,7 @@ SITES_FIELDNAMES = [
     "substitutions",
     "majority_residue",
     "prime_marker",
+    "prime_qval",
     "meme_marker",
     "fel_selection",
 ]
