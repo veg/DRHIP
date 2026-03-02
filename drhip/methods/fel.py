@@ -139,7 +139,12 @@ class FelMethod(HyPhyMethod):
                 or pvalue_index >= len(row)
             ):
                 # Return NA values for missing data
-                return {"fel_selection": "NA", "fel_pval": "NA"}
+                return {
+                    "fel_selection": "NA",
+                    "fel_pval": "NA",
+                    "fel_alpha": "NA",
+                    "fel_beta": "NA",
+                }
 
             try:
                 alpha = float(row[alpha_index])
@@ -157,10 +162,17 @@ class FelMethod(HyPhyMethod):
                 return {
                     "fel_selection": selection_type if pvalue <= 0.05 else "neutral",
                     "fel_pval": f"{pvalue:.3f}",
+                    "fel_alpha": f"{alpha:.3f}",
+                    "fel_beta": f"{beta:.3f}",
                 }
             except (ValueError, TypeError):
                 # Return NA values for malformed data
-                return {"fel_selection": "NA", "fel_pval": "NA"}
+                return {
+                    "fel_selection": "NA",
+                    "fel_pval": "NA",
+                    "fel_alpha": "NA",
+                    "fel_beta": "NA",
+                }
 
         # Use the helper to process site data
         return self.process_site_mle_data(results, column_names, process_row)
@@ -173,7 +185,7 @@ class FelMethod(HyPhyMethod):
     @staticmethod
     def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
-        return ["fel_selection", "fel_pval"]
+        return ["fel_selection", "fel_pval", "fel_alpha", "fel_beta"]
 
     @staticmethod
     def get_comparison_group_fields() -> List[str]:
