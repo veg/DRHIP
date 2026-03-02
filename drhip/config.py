@@ -37,6 +37,7 @@ SITES_FIELDNAMES = [
     "prime_qval",
     "meme_marker",
     "fel_selection",
+    "fel_pval",
 ]
 
 COMPARISON_GROUPS_SUMMARY_FIELDNAMES = [
