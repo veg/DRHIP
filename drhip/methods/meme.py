@@ -82,14 +82,8 @@ class MemeMethod(HyPhyMethod):
 
             try:
                 pvalue = float(row[pvalue_index])
-
-                # Set the marker based on significance
-                if pvalue <= 0.05:
-                    marker = f"{pvalue:.3f}"  # Format p-value for significant sites
-                else:
-                    marker = "-"  # Use dash for non-significant sites
-
-                return {"meme_marker": marker}
+                # Always emit the p-value regardless of significance
+                return {"meme_marker": f"{pvalue:.3f}"}
             except (ValueError, TypeError):
                 # Return NA for malformed data
                 return {"meme_marker": "NA"}
