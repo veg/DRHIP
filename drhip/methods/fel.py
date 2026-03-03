@@ -161,7 +161,8 @@ class FelMethod(HyPhyMethod):
                 # Return site data - only include site-specific fields
                 return {
                     "fel_selection": selection_type if pvalue <= 0.05 else "neutral",
-                    "fel_pval": f"{pvalue:.3f}",
+                    #"fel_pval": f"{pvalue:.3f}",
+                    "fel_pval": f"{pvalue}",
                     "fel_alpha": f"{alpha:.3f}",
                     "fel_beta": f"{beta:.3f}",
                 }

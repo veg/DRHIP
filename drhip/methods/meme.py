@@ -83,7 +83,8 @@ class MemeMethod(HyPhyMethod):
             try:
                 pvalue = float(row[pvalue_index])
                 # Always emit the p-value regardless of significance
-                return {"meme_marker": f"{pvalue:.3f}"}
+                # return {"meme_marker": f"{pvalue:.3f}"}
+                return {"meme_marker": f"{pvalue}"}
             except (ValueError, TypeError):
                 # Return NA for malformed data
                 return {"meme_marker": "NA"}
