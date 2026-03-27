@@ -138,7 +138,7 @@ class PrimeMethod(HyPhyMethod):
             # Determine the marker value
             if not has_valid_data or not pvals or not prime_tags:
                 # For missing or malformed data
-                return {"prime_marker": "NA", "prime_pval": "NA"}
+                return {"prime_marker": "NA", "prime_qval": "NA"}
             elif omnibus_qval <= 0.05:
                 # For sites with significant properties
                 significant_tags = [
