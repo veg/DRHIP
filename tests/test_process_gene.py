@@ -3,6 +3,7 @@ Tests for process_gene module.
 """
 
 import csv
+import json
 import os
 import shutil
 import tempfile
@@ -87,6 +88,74 @@ def test_process_gene_sites_content(results_dir):
                 if any(method in key.lower() for method in ["fel", "meme", "busted"])
             ]
             assert len(method_fields) > 0
+
+
+def test_process_gene_sites_report_all_fel_and_meme_pvalues():
+    """Generated site CSVs should keep raw FEL/MEME p-values, even if not significant."""
+    gene_name = "synthetic_gene"
+    rows = [[0.01], [0.04], [0.051], [0.2]]
+
+    fel_results = {
+        "tested": {"0": {"branch1": "test", "branch2": "test"}},
+        "branch attributes": {
+            "0": {
+                "branch1": {"length": 0.1},
+                "branch2": {"length": 0.2},
+            }
+        },
+        "MLE": {
+            "headers": [
+                ["alpha", "Synonymous rate"],
+                ["beta", "Non-synonymous rate"],
+                ["p-value", "P-value"],
+            ],
+            "content": {
+                "0": [
+                    [2.0, 1.0, 0.01],
+                    [2.0, 1.0, 0.04],
+                    [1.0, 2.0, 0.051],
+                    [2.0, 1.0, 0.2],
+                ]
+            },
+        },
+    }
+    meme_results = {
+        "MLE": {
+            "headers": [["p-value", "P-value"]],
+            "content": {"0": rows},
+        }
+    }
+
+    with tempfile.TemporaryDirectory() as results_dir:
+        with tempfile.TemporaryDirectory() as output_dir:
+            os.makedirs(os.path.join(results_dir, "FEL"))
+            os.makedirs(os.path.join(results_dir, "MEME"))
+
+            with open(os.path.join(results_dir, "FEL", f"{gene_name}.FEL.json"), "w") as f:
+                json.dump(fel_results, f)
+            with open(
+                os.path.join(results_dir, "MEME", f"{gene_name}.MEME.json"), "w"
+            ) as f:
+                json.dump(meme_results, f)
+
+            process_gene(gene_name, results_dir, output_dir)
+
+            sites_file = os.path.join(output_dir, f"{gene_name}_sites.csv")
+            with open(sites_file) as f:
+                site_rows = list(csv.DictReader(f))
+
+    assert len(site_rows) == 4
+    for field in ["fel_pval", "fel_qval", "meme_pval", "meme_qval"]:
+        assert field in site_rows[0]
+        assert all(row[field] != "-" for row in site_rows)
+
+    second_site = site_rows[1]
+    assert second_site["site"] == "2"
+    assert float(second_site["fel_pval"]) == 0.04
+    assert float(second_site["meme_pval"]) == 0.04
+    assert round(float(second_site["fel_qval"]), 3) == 0.068
+    assert round(float(second_site["meme_qval"]), 3) == 0.068
+    assert second_site["fel_selection"] == "neutral"
 
 
 def test_process_gene_comparison_data(comparison_results_dir):

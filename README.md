@@ -93,7 +93,9 @@ The toolkit produces combined files that aggregate data across all genes:
   - Number of sites (sites)
 
 - **combined_sites.csv**: Site-specific analysis including:
-  - Beta values per comparison group
+  - FEL raw p-values (`fel_pval`) and Benjamini-Hochberg adjusted q-values (`fel_qval`)
+  - MEME raw p-values (`meme_pval`) and Benjamini-Hochberg adjusted q-values (`meme_qval`)
+  - FEL alpha and beta values
   - Inferred substitutions at each site
   - Site amino acid composition
 
@@ -115,8 +117,9 @@ The combined files automatically include the superset of all fields found across
 
 The toolkit uses consistent markers to represent different types of data:
 
-- **Significant Results**: Actual values (p-values, property names, etc.)
-- **Non-significant Results**: "-" marker for most fields
+- **P-values and q-values**: FEL, MEME, and Contrast-FEL site outputs report numeric values whenever they are available, regardless of significance
+- **Significant Results**: Actual values (property names, selection labels, etc.)
+- **Non-significant Results**: "-" marker for fields that are categorical markers rather than raw statistics
 - **Missing or Malformed Data**: "NA" marker
 
 If data for a particular method is missing for a gene, or if the data is malformed or cannot be processed, the toolkit will output "NA" in the corresponding fields. This allows for easy identification of missing data versus non-significant results.

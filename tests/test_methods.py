@@ -92,6 +92,8 @@ def test_fel_uses_bh_qvalues_for_selection():
     assert summary["negative_sites"] == 1
     assert site_data[1]["fel_selection"] == "negative"
     assert site_data[2]["fel_selection"] == "neutral"
+    assert float(site_data[1]["fel_pval"]) == 0.01
+    assert float(site_data[2]["fel_pval"]) == 0.04
     assert float(site_data[1]["fel_qval"]) == 0.04
     assert round(float(site_data[2]["fel_qval"]), 3) == 0.068
 
