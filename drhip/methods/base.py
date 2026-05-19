@@ -3,7 +3,7 @@ Base class and interfaces for HyPhy analysis methods.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class HyPhyMethod(ABC):
@@ -244,6 +244,40 @@ class HyPhyMethod(ABC):
                 continue
 
         return site_results
+
+    @staticmethod
+    def benjamini_hochberg_qvalues(
+        pvalues: List[Optional[float]],
+    ) -> List[Optional[float]]:
+        """Calculate Benjamini-Hochberg adjusted q-values.
+
+        Invalid or missing p-values should be passed as None. They are excluded
+        from the correction and returned as None in their original positions.
+        """
+        qvalues: List[Optional[float]] = [None] * len(pvalues)
+        valid_pvalues = [
+            (index, pvalue)
+            for index, pvalue in enumerate(pvalues)
+            if pvalue is not None and 0 <= pvalue <= 1
+        ]
+
+        if not valid_pvalues:
+            return qvalues
+
+        valid_pvalues.sort(key=lambda item: item[1])
+        number_of_tests = len(valid_pvalues)
+        previous_qvalue = 1.0
+
+        for rank, (original_index, pvalue) in enumerate(
+            reversed(valid_pvalues), start=1
+        ):
+            ascending_rank = number_of_tests - rank + 1
+            qvalue = min(previous_qvalue, pvalue * number_of_tests / ascending_rank)
+            adjusted_qvalue = min(qvalue, 1.0)
+            qvalues[original_index] = adjusted_qvalue
+            previous_qvalue = adjusted_qvalue
+
+        return qvalues
 
     def extract_common_fields(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Extract common fields from HyPhy results.

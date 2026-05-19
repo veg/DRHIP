@@ -35,9 +35,11 @@ SITES_FIELDNAMES = [
     "majority_residue",
     "prime_marker",
     "prime_qval",
-    "meme_marker",
+    "meme_pval",
+    "meme_qval",
     "fel_selection",
     "fel_pval",
+    "fel_qval",
     "fel_alpha",
     "fel_beta",
 ]

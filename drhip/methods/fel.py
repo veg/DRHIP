@@ -38,14 +38,14 @@ class FelMethod(HyPhyMethod):
         """Calculate negative selection statistics from MLE data.
 
         This helper calculates FEL negative selection statistics:
-        - negative_sites: Number of sites under negative selection (beta < alpha, p <= significance)
+        - negative_sites: Number of sites under negative selection (beta < alpha, q <= significance)
 
         Args:
             results: Raw results dictionary from JSON file
             alpha_col: Name of the column containing alpha (synonymous rate) values
             beta_col: Name of the column containing beta (non-synonymous rate) values
             pvalue_col: Name of the column containing p-values
-            significance: P-value threshold for significance (default: 0.05)
+            significance: Q-value threshold for significance (default: 0.05)
 
         Returns:
             Dictionary with negative selection statistics
@@ -68,16 +68,25 @@ class FelMethod(HyPhyMethod):
         if alpha_index < 0 or beta_index < 0 or pvalue_index < 0:
             return stats
 
+        rows = results["MLE"]["content"]["0"]
+        pvalues = []
+        for row in rows:
+            try:
+                pvalues.append(float(row[pvalue_index]))
+            except (ValueError, IndexError, TypeError):
+                pvalues.append(None)
+
+        qvalues = self.benjamini_hochberg_qvalues(pvalues)
+
         # Process each site
-        for row in results["MLE"]["content"]["0"]:
+        for row, qvalue in zip(rows, qvalues):
             try:
                 # Extract values
                 alpha = float(row[alpha_index])  # Alpha (synonymous rate)
                 beta = float(row[beta_index])  # Beta (non-synonymous rate)
-                p_value = float(row[pvalue_index])  # P-value
 
                 # Count sites based on selection criteria
-                if p_value <= significance and beta < alpha:
+                if qvalue is not None and qvalue <= significance and beta < alpha:
                     stats["negative_sites"] += 1
             except (ValueError, IndexError, TypeError):
                 # Skip this site if there's an error
@@ -120,6 +129,8 @@ class FelMethod(HyPhyMethod):
         Returns:
             Dictionary with site-specific metrics
         """
+        qvalues_by_site = self._site_qvalues(results, pvalue_col="p-value")
+
         # Define column names mapping
         column_names = {"alpha": "alpha", "beta": "beta", "p-value": "p-value"}
 
@@ -142,6 +153,7 @@ class FelMethod(HyPhyMethod):
                 return {
                     "fel_selection": "NA",
                     "fel_pval": "NA",
+                    "fel_qval": "NA",
                     "fel_alpha": "NA",
                     "fel_beta": "NA",
                 }
@@ -150,19 +162,24 @@ class FelMethod(HyPhyMethod):
                 alpha = float(row[alpha_index])
                 beta = float(row[beta_index])
                 pvalue = float(row[pvalue_index])
+                qvalue = qvalues_by_site.get(site_idx)
 
                 # Determine selection type
                 selection_type = (
                     "positive"
-                    if beta > alpha and pvalue <= 0.05
-                    else "negative" if beta < alpha and pvalue <= 0.05 else "neutral"
+                    if beta > alpha and qvalue is not None and qvalue <= 0.05
+                    else (
+                        "negative"
+                        if beta < alpha and qvalue is not None and qvalue <= 0.05
+                        else "neutral"
+                    )
                 )
 
                 # Return site data - only include site-specific fields
                 return {
-                    "fel_selection": selection_type if pvalue <= 0.05 else "neutral",
-                    #"fel_pval": f"{pvalue:.3f}",
+                    "fel_selection": selection_type,
                     "fel_pval": f"{pvalue}",
+                    "fel_qval": f"{qvalue}" if qvalue is not None else "NA",
                     "fel_alpha": f"{alpha:.3f}",
                     "fel_beta": f"{beta:.3f}",
                 }
@@ -171,12 +188,39 @@ class FelMethod(HyPhyMethod):
                 return {
                     "fel_selection": "NA",
                     "fel_pval": "NA",
+                    "fel_qval": "NA",
                     "fel_alpha": "NA",
                     "fel_beta": "NA",
                 }
 
         # Use the helper to process site data
         return self.process_site_mle_data(results, column_names, process_row)
+
+    def _site_qvalues(
+        self, results: Dict[str, Any], pvalue_col: str = "p-value"
+    ) -> Dict[int, float]:
+        """Calculate per-site FEL q-values for a single gene result."""
+        if not self.has_mle_content(results) or not self.has_mle_headers(results):
+            return {}
+
+        header_indices = self.get_header_indices(results)
+        pvalue_index = self.get_column_index(header_indices, pvalue_col, -1)
+        if pvalue_index < 0:
+            return {}
+
+        pvalues = []
+        for row in results["MLE"]["content"]["0"]:
+            try:
+                pvalues.append(float(row[pvalue_index]))
+            except (ValueError, IndexError, TypeError):
+                pvalues.append(None)
+
+        qvalues = self.benjamini_hochberg_qvalues(pvalues)
+        return {
+            site_idx: qvalue
+            for site_idx, qvalue in enumerate(qvalues, 1)
+            if qvalue is not None
+        }
 
     @staticmethod
     def get_summary_fields() -> List[str]:
@@ -186,7 +230,7 @@ class FelMethod(HyPhyMethod):
     @staticmethod
     def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
-        return ["fel_selection", "fel_pval", "fel_alpha", "fel_beta"]
+        return ["fel_selection", "fel_pval", "fel_qval", "fel_alpha", "fel_beta"]
 
     @staticmethod
     def get_comparison_group_fields() -> List[str]:

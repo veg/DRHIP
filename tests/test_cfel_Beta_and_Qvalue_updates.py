@@ -81,7 +81,7 @@ def test_cfel_diff_sites_count_from_qvalue(comparison_results_dir: str):
 def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
     """
     CfelMethod.process_comparison_site_data should:
-    - set cfel_marker to formatted Q-value ("{q:.3f}") when q <= 0.20, else '-'
+    - set cfel_marker to formatted Q-value ("{q:.3f}") when available
     - set cfel_beta to per-group formatted value:
         * '0.000' for exact 0
         * scientific notation with 3 decimals if |beta|<1e-3 or >= 1e3
@@ -133,7 +133,7 @@ def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
             if q_idx < len(row):
                 try:
                     q = float(row[q_idx])
-                    expected_marker = f"{q:.3f}" if q <= 0.20 else "-"
+                    expected_marker = f"{q:.3f}"
                 except (ValueError, TypeError):
                     expected_marker = "NA"
 
@@ -150,9 +150,9 @@ def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
                 # cfel_marker formatting
                 assert "cfel_marker" in gdata
                 marker = gdata["cfel_marker"]
-                # Either '-', or a numeric string with exactly 3 decimals
+                # Either NA, or a numeric string with exactly 3 decimals
                 assert marker == expected_marker or marker == "NA"
-                if marker not in ("-", "NA"):
+                if marker != "NA":
                     assert re.fullmatch(r"\d*\.\d{3}", marker) is not None
 
                 # cfel_beta formatting
