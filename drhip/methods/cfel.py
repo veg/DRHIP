@@ -315,11 +315,8 @@ class CfelMethod(HyPhyMethod):
                     if q_value_idx >= 0 and q_value_idx < len(row):
                         try:
                             q_value = float(row[q_value_idx])
-                            # Set the marker based on significance
-                            if q_value <= 0.20:
-                                q_value_str = f"{q_value:.3f}"  # Format p-value for significant sites
-                            else:
-                                q_value_str = "-"  # Use dash for non-significant sites
+                            # Always emit the p-value regardless of significance
+                            q_value_str = f"{q_value:.3f}"
                         except (ValueError, TypeError):
                             # Return NA for malformed data
                             q_value_str = "NA"

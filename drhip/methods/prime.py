@@ -82,12 +82,15 @@ class PrimeMethod(HyPhyMethod):
         # First, extract property tags and p-value indices
         prime_tags = []
         p_indices = []
+        overall_q_index = None
 
         if self.has_mle_headers(results):
             headers = results["MLE"]["headers"]
 
             for i, (short_label, description) in enumerate(headers):
-                if short_label == "p-value":
+                if short_label == "q-value":
+                    overall_q_index = i
+                elif short_label == "p-value":
                     p_indices.append(i)
                     prime_tags.append((0, "overall"))
                 elif short_label.startswith("p") and short_label[1:].isdigit():
@@ -110,6 +113,7 @@ class PrimeMethod(HyPhyMethod):
         def process_row(site_idx, row, column_indices):
             # Get p-values for all properties, with error handling
             pvals = []
+            omnibus_qval = None
             has_valid_data = True
 
             for idx in p_indices:
@@ -123,19 +127,30 @@ class PrimeMethod(HyPhyMethod):
                     has_valid_data = False  # Mark as invalid if conversion fails
                     break
 
+            try:
+                if overall_q_index and overall_q_index < len(row):
+                    omnibus_qval = float(row[overall_q_index])
+                else:
+                    has_valid_data = False  # Mark as invalid if index out of range
+            except (ValueError, TypeError):
+                has_valid_data = False  # Mark as invalid if conversion fails
+
             # Determine the marker value
             if not has_valid_data or not pvals or not prime_tags:
                 # For missing or malformed data
-                return {"prime_marker": "NA"}
-            elif min(pvals) <= 0.05:
+                return {"prime_marker": "NA", "prime_qval": "NA"}
+            elif omnibus_qval <= 0.05:
                 # For sites with significant properties
                 significant_tags = [
                     prime_tags[i] for i, pval in enumerate(pvals) if pval <= 0.05
                 ]
-                return {"prime_marker": ",".join(significant_tags)}
+                return {
+                    "prime_marker": ",".join(significant_tags),
+                    "prime_qval": omnibus_qval,
+                }
             else:
                 # For non-significant sites, use dash as in original End2End pipeline
-                return {"prime_marker": "-"}
+                return {"prime_marker": "-", "prime_qval": omnibus_qval}
 
         # Use the helper to process site data
         return self.process_site_mle_data(results, column_names, process_row)
@@ -148,7 +163,7 @@ class PrimeMethod(HyPhyMethod):
     @staticmethod
     def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
-        return ["prime_marker"]
+        return ["prime_marker", "prime_qval"]
 
     @staticmethod
     def get_comparison_group_fields() -> List[str]:

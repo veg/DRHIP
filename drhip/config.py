@@ -34,8 +34,14 @@ SITES_FIELDNAMES = [
     "substitutions",
     "majority_residue",
     "prime_marker",
-    "meme_marker",
+    "prime_qval",
+    "meme_pval",
+    "meme_qval",
     "fel_selection",
+    "fel_pval",
+    "fel_qval",
+    "fel_alpha",
+    "fel_beta",
 ]
 
 COMPARISON_GROUPS_SUMMARY_FIELDNAMES = [

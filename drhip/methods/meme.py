@@ -46,14 +46,17 @@ class MemeMethod(HyPhyMethod):
                 header_indices, "p-value", 7
             )  # P-value for episodic selection
 
+            pvalues = []
             for row in results["MLE"]["content"]["0"]:
                 try:
-                    p_value = float(row[pvalue_index])
-                    if p_value <= 0.05:
-                        positive_sites += 1
+                    pvalues.append(float(row[pvalue_index]))
                 except (ValueError, TypeError, IndexError):
-                    # Skip rows with invalid data
-                    pass
+                    pvalues.append(None)
+
+            qvalues = self.benjamini_hochberg_qvalues(pvalues)
+            positive_sites = sum(
+                1 for qvalue in qvalues if qvalue is not None and qvalue <= 0.05
+            )
 
         # Store the count of sites under episodic selection in the summary
         processed["positive_sites"] = positive_sites
@@ -69,6 +72,8 @@ class MemeMethod(HyPhyMethod):
         Returns:
             Dictionary with site-specific metrics
         """
+        qvalues_by_site = self._site_qvalues(results, pvalue_col="p-value")
+
         # Define column names mapping
         column_names = {"site": "Site", "p-value": "p-value"}
 
@@ -78,24 +83,47 @@ class MemeMethod(HyPhyMethod):
 
             # Check if we have valid indices and data
             if pvalue_index < 0 or pvalue_index >= len(row):
-                return {"meme_marker": "NA"}  # Use NA for missing data
+                return {"meme_pval": "NA", "meme_qval": "NA"}
 
             try:
                 pvalue = float(row[pvalue_index])
-
-                # Set the marker based on significance
-                if pvalue <= 0.05:
-                    marker = f"{pvalue:.3f}"  # Format p-value for significant sites
-                else:
-                    marker = "-"  # Use dash for non-significant sites
-
-                return {"meme_marker": marker}
+                qvalue = qvalues_by_site.get(site_idx)
+                return {
+                    "meme_pval": f"{pvalue}",
+                    "meme_qval": f"{qvalue}" if qvalue is not None else "NA",
+                }
             except (ValueError, TypeError):
                 # Return NA for malformed data
-                return {"meme_marker": "NA"}
+                return {"meme_pval": "NA", "meme_qval": "NA"}
 
         # Use the helper to process site data
         return self.process_site_mle_data(results, column_names, process_row)
+
+    def _site_qvalues(
+        self, results: Dict[str, Any], pvalue_col: str = "p-value"
+    ) -> Dict[int, float]:
+        """Calculate per-site MEME q-values for a single gene result."""
+        if not self.has_mle_content(results) or not self.has_mle_headers(results):
+            return {}
+
+        header_indices = self.get_header_indices(results)
+        pvalue_index = self.get_column_index(header_indices, pvalue_col, -1)
+        if pvalue_index < 0:
+            return {}
+
+        pvalues = []
+        for row in results["MLE"]["content"]["0"]:
+            try:
+                pvalues.append(float(row[pvalue_index]))
+            except (ValueError, IndexError, TypeError):
+                pvalues.append(None)
+
+        qvalues = self.benjamini_hochberg_qvalues(pvalues)
+        return {
+            site_idx: qvalue
+            for site_idx, qvalue in enumerate(qvalues, 1)
+            if qvalue is not None
+        }
 
     @staticmethod
     def get_summary_fields() -> List[str]:
@@ -105,7 +133,7 @@ class MemeMethod(HyPhyMethod):
     @staticmethod
     def get_site_fields() -> List[str]:
         """Get list of site-specific fields produced by this method."""
-        return ["meme_marker"]
+        return ["meme_pval", "meme_qval"]
 
     @staticmethod
     def get_comparison_group_fields() -> List[str]:

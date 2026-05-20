@@ -66,6 +66,38 @@ def test_fel_method_processing(real_fel_results):
         assert len(site_info) > 0
 
 
+def test_fel_uses_bh_qvalues_for_selection():
+    method = FelMethod()
+    results = {
+        "MLE": {
+            "headers": [
+                ["alpha", "Synonymous rate"],
+                ["beta", "Non-synonymous rate"],
+                ["p-value", "P-value"],
+            ],
+            "content": {
+                "0": [
+                    [2.0, 1.0, 0.01],
+                    [2.0, 1.0, 0.04],
+                    [1.0, 2.0, 0.051],
+                    [2.0, 1.0, 0.2],
+                ]
+            },
+        }
+    }
+
+    summary = method.process_results(results)
+    site_data = method.process_site_data(results)
+
+    assert summary["negative_sites"] == 1
+    assert site_data[1]["fel_selection"] == "negative"
+    assert site_data[2]["fel_selection"] == "neutral"
+    assert float(site_data[1]["fel_pval"]) == 0.01
+    assert float(site_data[2]["fel_pval"]) == 0.04
+    assert float(site_data[1]["fel_qval"]) == 0.04
+    assert round(float(site_data[2]["fel_qval"]), 3) == 0.068
+
+
 def test_meme_method_processing(real_meme_results):
     """Test MEME method result processing."""
     method = MemeMethod()
@@ -88,6 +120,25 @@ def test_meme_method_processing(real_meme_results):
         # Just verify that we have some data for the site
         assert isinstance(site_info, dict)
         assert len(site_info) > 0
+
+
+def test_meme_uses_bh_qvalues_for_positive_sites():
+    method = MemeMethod()
+    results = {
+        "MLE": {
+            "headers": [["p-value", "P-value"]],
+            "content": {"0": [[0.01], [0.04], [0.051], [0.2]]},
+        }
+    }
+
+    summary = method.process_results(results)
+    site_data = method.process_site_data(results)
+
+    assert summary["positive_sites"] == 1
+    assert float(site_data[1]["meme_pval"]) == 0.01
+    assert float(site_data[2]["meme_pval"]) == 0.04
+    assert float(site_data[1]["meme_qval"]) == 0.04
+    assert round(float(site_data[2]["meme_qval"]), 3) == 0.068
 
 
 def test_method_field_generation():
