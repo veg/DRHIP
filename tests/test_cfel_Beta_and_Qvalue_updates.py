@@ -2,6 +2,7 @@
 Tests covering PR #7 (CFEL fixes):
 - diff_sites counting from Q-value column
 - cfel_marker formatting per site/group based on Q-value
+- cfel_pval and cfel_qval output from site-level CFEL columns
 - cfel_beta per-group value formatting
 """
 
@@ -101,7 +102,7 @@ def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
         method = CfelMethod().set_comparison_groups(groups)
         site_data = method.process_comparison_site_data(results)
 
-        # Build our own header index map for beta and Q-value
+        # Build our own header index map for beta, P-value, and Q-value
         headers = _get_header_indices(results)
 
         # Map group -> beta column index using headers like 'beta (group)'
@@ -112,6 +113,14 @@ def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
                 group_name = k[k.find("(") + 1 : k.find(")")]
                 if group_name in groups:
                     beta_idx_map[group_name] = idx
+
+        # Locate the P-value column index
+        p_idx = None
+        for k, idx in headers.items():
+            if k.lower().startswith("p-value"):
+                p_idx = idx
+                break
+        assert p_idx is not None, "P-value column not found in CFEL headers"
 
         # Locate the Q-value column index
         q_idx = None
@@ -128,14 +137,26 @@ def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
         for site_zero_idx in range(sample_count):
             site_id = str(site_zero_idx + 1)
             row = rows[site_zero_idx]
+            # Expected p-value from P-value (overall)
+            expected_pval = "NA"
+            if p_idx < len(row):
+                try:
+                    p = float(row[p_idx])
+                    expected_pval = f"{p}"
+                except (ValueError, TypeError):
+                    expected_pval = "NA"
+
             # Expected marker from Q-value
             expected_marker = "NA"
+            expected_qval = "NA"
             if q_idx < len(row):
                 try:
                     q = float(row[q_idx])
                     expected_marker = f"{q:.3f}"
+                    expected_qval = f"{q}"
                 except (ValueError, TypeError):
                     expected_marker = "NA"
+                    expected_qval = "NA"
 
             for group in groups:
                 assert (
@@ -154,6 +175,8 @@ def test_cfel_marker_and_beta_formatting(comparison_results_dir: str):
                 assert marker == expected_marker or marker == "NA"
                 if marker != "NA":
                     assert re.fullmatch(r"\d*\.\d{3}", marker) is not None
+                assert gdata["cfel_pval"] == expected_pval
+                assert gdata["cfel_qval"] == expected_qval
 
                 # cfel_beta formatting
                 assert "cfel_beta" in gdata
@@ -182,6 +205,8 @@ def test_cfel_get_comparison_group_site_fields_contains_expected():
     fields = set(CfelMethod.get_comparison_group_site_fields())
     for f in [
         "cfel_marker",
+        "cfel_pval",
+        "cfel_qval",
         "cfel_beta",
         "composition",
         "substitutions",

@@ -199,6 +199,8 @@ def test_cfel_process_comparison_site_data_has_composition_and_substitutions(
             # Presence of keys
             for key in [
                 "cfel_marker",
+                "cfel_pval",
+                "cfel_qval",
                 "cfel_beta",
                 "composition",
                 "substitutions",

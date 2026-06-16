@@ -63,6 +63,8 @@ COMPARISON_GROUPS_SITE_FIELDNAMES = [
     "majority_residue",
     "composition",
     "cfel_marker",
+    "cfel_pval",
+    "cfel_qval",
     "cfel_beta",
     "intensified_positive_selection",
 ]

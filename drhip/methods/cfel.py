@@ -298,8 +298,9 @@ class CfelMethod(HyPhyMethod):
         if "0" in mle_content and isinstance(mle_content["0"], list):
             rows = mle_content["0"]
 
-            # Locate the Q-value column index once
+            # Locate the P-value and Q-value column indices once
             header_indices = self.get_header_indices(results)
+            p_value_idx = self.get_column_index(header_indices, "P-value (overall)", -1)
             q_value_idx = self.get_column_index(header_indices, "Q-value (overall)", -1)
 
             # Each row represents a site
@@ -310,17 +311,33 @@ class CfelMethod(HyPhyMethod):
                 # Process data for each comparison group
                 for group in self._comparison_groups:
                     group_data = {}
-                    # Safely set CFEL marker to the site's Q-value (same for all groups)
+                    # Safely set CFEL p/q-values for the site (same for all groups)
+                    p_value_str = "NA"
+                    if p_value_idx >= 0 and p_value_idx < len(row):
+                        try:
+                            p_value = float(row[p_value_idx])
+                            p_value_str = f"{p_value}"
+                        except (ValueError, TypeError):
+                            p_value_str = "NA"
+
                     q_value_str = "NA"
                     if q_value_idx >= 0 and q_value_idx < len(row):
                         try:
                             q_value = float(row[q_value_idx])
-                            # Always emit the p-value regardless of significance
-                            q_value_str = f"{q_value:.3f}"
+                            q_value_str = f"{q_value}"
                         except (ValueError, TypeError):
                             # Return NA for malformed data
                             q_value_str = "NA"
-                    group_data["cfel_marker"] = q_value_str
+                    group_data["cfel_pval"] = p_value_str
+                    group_data["cfel_qval"] = q_value_str
+                    # Keep cfel_marker for backward compatibility with existing outputs.
+                    q_marker_str = "NA"
+                    try:
+                        if q_value_str != "NA":
+                            q_marker_str = f"{float(q_value_str):.3f}"
+                    except (ValueError, TypeError):
+                        q_marker_str = "NA"
+                    group_data["cfel_marker"] = q_marker_str
 
                     # Add per-group Beta value
                     beta_value_str = "NA"
@@ -445,6 +462,8 @@ class CfelMethod(HyPhyMethod):
         """Get list of site-specific fields that are specific to comparison groups."""
         return [
             "cfel_marker",  # CFEL marker for this site in this comparison group
+            "cfel_pval",  # Site-level CFEL p-value
+            "cfel_qval",  # Site-level CFEL q-value used for significance decisions
             "cfel_beta",  # Per-group beta value for this site
             "composition",  # Per-group composition at this site
             "substitutions",  # Per-group substitutions at this site
